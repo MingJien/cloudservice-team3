@@ -1,0 +1,27 @@
+# IDE / OS
+.vscode/
+.vs/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Build outputs
+bin/
+obj/
+.next/
+out/
+coverage/
+
+# Docker / env
+.env
+.env.*
+!.env.example
+
+# Node
+node_modules/
+
+# Logs
+*.log
+
+# Git
+*.orig
