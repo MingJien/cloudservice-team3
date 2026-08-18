@@ -1,0 +1,2 @@
+import { Card } from "@/components/ui/card";
+export default function Page() { return <main className="grid min-h-screen place-items-center bg-paper-50 p-4"><Card className="w-full max-w-md"><p className="text-sm font-semibold uppercase tracking-wider text-river-700">MekongNode Admin</p><h1 className="mt-3 text-2xl font-bold">Đăng nhập quản trị</h1><p className="mt-3 text-sm leading-6 text-slate-600">Route placeholder. API Auth đã có ở backend; form và lưu token phía frontend sẽ được thực hiện ở PR riêng của trưởng nhóm.</p></Card></main>; }

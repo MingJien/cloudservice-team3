@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink-950: #0b132b;
+  --color-river-700: #174a7e;
+  --color-river-600: #1e66a5;
+  --color-lotus-500: #e06c75;
+  --color-ice-100: #eaf3f7;
+  --color-paper-50: #fafaf7;
+  --color-slate-600: #5e6b7a;
+  --color-line-200: #d7e0e8;
+  --color-success-600: #16805d;
+  --color-warning-600: #b26a13;
+  --color-danger-600: #b83a4b;
+  --font-sans: "Be Vietnam Pro", Arial, sans-serif;
+}
+
+:root {
+  --color-ink-950: #0b132b;
+  --color-river-700: #174a7e;
+  --color-river-600: #1e66a5;
+  --color-lotus-500: #e06c75;
+  --color-ice-100: #eaf3f7;
+  --color-paper-50: #fafaf7;
+  --color-slate-600: #5e6b7a;
+  --color-line-200: #d7e0e8;
+  --color-success-600: #16805d;
+  --color-warning-600: #b26a13;
+  --color-danger-600: #b83a4b;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  color: var(--color-ink-950);
+  background: var(--color-paper-50);
+  font-family: "Be Vietnam Pro", Arial, sans-serif;
+  line-height: 1.6;
+}
+
+button,
+a,
+input,
+select {
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  color: white;
+  background: var(--color-river-700);
+}

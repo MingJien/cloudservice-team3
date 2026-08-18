@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\CloudService.Domain\CloudService.Domain.csproj" />
+  </ItemGroup>
+</Project>
+
