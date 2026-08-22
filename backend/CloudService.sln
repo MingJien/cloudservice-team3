@@ -1,0 +1,49 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CloudService.Domain", "src\CloudService.Domain\CloudService.Domain.csproj", "{B02B31C8-6AF3-4A30-A0B4-70B94170A101}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CloudService.Application", "src\CloudService.Application\CloudService.Application.csproj", "{8CE20F1F-2E4F-44E1-A290-11A4A00EA102}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CloudService.Infrastructure", "src\CloudService.Infrastructure\CloudService.Infrastructure.csproj", "{FCF616BE-5E51-42D0-BC8D-2FDB02D0A103}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CloudService.WebApi", "src\CloudService.WebApi\CloudService.WebApi.csproj", "{8574F46B-CF79-4309-9402-B11CC255A104}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CloudService.Domain.Tests", "tests\CloudService.Domain.Tests\CloudService.Domain.Tests.csproj", "{C4E9986C-FB18-4CCB-B336-6A2A2149A105}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CloudService.Application.Tests", "tests\CloudService.Application.Tests\CloudService.Application.Tests.csproj", "{3F0A5E22-F43C-45F4-94D8-BAFC6B97A106}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B02B31C8-6AF3-4A30-A0B4-70B94170A101}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B02B31C8-6AF3-4A30-A0B4-70B94170A101}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B02B31C8-6AF3-4A30-A0B4-70B94170A101}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B02B31C8-6AF3-4A30-A0B4-70B94170A101}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8CE20F1F-2E4F-44E1-A290-11A4A00EA102}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8CE20F1F-2E4F-44E1-A290-11A4A00EA102}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8CE20F1F-2E4F-44E1-A290-11A4A00EA102}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8CE20F1F-2E4F-44E1-A290-11A4A00EA102}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FCF616BE-5E51-42D0-BC8D-2FDB02D0A103}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FCF616BE-5E51-42D0-BC8D-2FDB02D0A103}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FCF616BE-5E51-42D0-BC8D-2FDB02D0A103}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FCF616BE-5E51-42D0-BC8D-2FDB02D0A103}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8574F46B-CF79-4309-9402-B11CC255A104}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8574F46B-CF79-4309-9402-B11CC255A104}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8574F46B-CF79-4309-9402-B11CC255A104}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8574F46B-CF79-4309-9402-B11CC255A104}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C4E9986C-FB18-4CCB-B336-6A2A2149A105}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C4E9986C-FB18-4CCB-B336-6A2A2149A105}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C4E9986C-FB18-4CCB-B336-6A2A2149A105}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C4E9986C-FB18-4CCB-B336-6A2A2149A105}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3F0A5E22-F43C-45F4-94D8-BAFC6B97A106}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3F0A5E22-F43C-45F4-94D8-BAFC6B97A106}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3F0A5E22-F43C-45F4-94D8-BAFC6B97A106}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3F0A5E22-F43C-45F4-94D8-BAFC6B97A106}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
+

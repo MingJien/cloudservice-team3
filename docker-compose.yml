@@ -1,0 +1,80 @@
+name: cloudservice
+
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:-CloudService-Local-Sa-Password-2026!}
+      MSSQL_PID: Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      - cloudservice-sqlserver:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$${MSSQL_SA_PASSWORD}\" -C -Q \"SELECT 1\" || /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P \"$${MSSQL_SA_PASSWORD}\" -Q \"SELECT 1\""]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ConnectionStrings__DefaultConnection: Server=db,1433;Database=CloudServiceDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:-CloudService-Local-Sa-Password-2026!};TrustServerCertificate=True;Encrypt=False
+      Jwt__Secret: ${JWT_SECRET:-CloudService-Local-Jwt-Secret-Replace-Before-Production-2026!}
+      Database__ApplyMigrationsOnStartup: ${DATABASE_APPLY_MIGRATIONS_ON_STARTUP:-true}
+      Seed__DemoUsers__Enabled: ${SEED_DEMO_USERS_ENABLED:-true}
+      Seed__DemoUsers__Admin__UserName: ${SEED_ADMIN_USERNAME:-admin}
+      Seed__DemoUsers__Admin__FullName: ${SEED_ADMIN_FULLNAME:-CloudService Administrator}
+      Seed__DemoUsers__Admin__Email: ${SEED_ADMIN_EMAIL:-admin@cloudservice.local}
+      Seed__DemoUsers__Admin__Password: ${SEED_ADMIN_PASSWORD:-ad123}
+      Seed__DemoUsers__Editor__UserName: ${SEED_EDITOR_USERNAME:-editor}
+      Seed__DemoUsers__Editor__FullName: ${SEED_EDITOR_FULLNAME:-CloudService Editor}
+      Seed__DemoUsers__Editor__Email: ${SEED_EDITOR_EMAIL:-editor@cloudservice.local}
+      Seed__DemoUsers__Editor__Password: ${SEED_EDITOR_PASSWORD:-Editor-Local-Password-2026!}
+      Seed__DemoUsers__ResetPasswordOnStartup: ${SEED_DEMO_USERS_RESET_PASSWORD_ON_STARTUP:-true}
+      Seed__DemoContent__Enabled: ${SEED_DEMO_CONTENT_ENABLED:-true}
+      Cors__AllowedOrigins__0: http://localhost:3000
+      PublicBaseUrl: http://localhost:3000
+      Telegram__Enabled: ${TELEGRAM_ENABLED:-false}
+      Telegram__BotToken: ${TELEGRAM_BOT_TOKEN:-}
+      Telegram__ChatId: ${TELEGRAM_CHAT_ID:-}
+    ports:
+      - "8080:8080"
+    volumes:
+      - cloudservice-api-avatars:/app/wwwroot/avatars
+      - cloudservice-api-branding:/app/wwwroot/branding
+      - cloudservice-api-plan-images:/app/wwwroot/plan-images
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent --show-error http://localhost:8080/health/ready > /dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      args:
+        NEXT_PUBLIC_API_BASE_URL: http://localhost:8080/api
+    environment:
+      NODE_ENV: production
+      BACKEND_API_BASE_URL: http://api:8080/api
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  cloudservice-sqlserver:
+  cloudservice-api-avatars:
+  cloudservice-api-branding:
+  cloudservice-api-plan-images:
