@@ -32,7 +32,12 @@ public sealed class SqlServerContainerSmokeTests
         await db.Database.MigrateAsync();
 
         (await db.Database.CanConnectAsync()).Should().BeTrue();
-        (await db.Database.GetAppliedMigrationsAsync()).Should().Contain("AddOrderExportJobsAndRefreshConcurrency");
+        // EF Core exposes migration identifiers with their generated timestamp.
+        // Matching the stable suffix proves the intended schema evolution ran,
+        // without coupling this smoke test to a timestamp that is not business data.
+        (await db.Database.GetAppliedMigrationsAsync())
+            .Should()
+            .Contain(migration => migration.EndsWith("_AddOrderExportJobsAndRefreshConcurrency", StringComparison.Ordinal));
         await db.Database.ExecuteSqlRawAsync("SELECT TOP (1) [RowVersion] FROM [RefreshTokens]");
     }
 }

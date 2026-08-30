@@ -4,7 +4,7 @@
 
 > Nền tảng SaaS mô phỏng quy trình tư vấn, đặt dịch vụ và vận hành cloud. Dự án được xây dựng theo Clean Architecture với .NET 10, Next.js, SQL Server, Docker Compose và quy trình kiểm thử tự động.
 
-[Repository](https://github.com/MingJien/cloudservice-team3) · [Hướng dẫn cho giảng viên](docs/19-evaluator-guide.md) · [Kiến trúc & đánh giá cuối](docs/18-final-architecture-review.md) · [Hướng dẫn deploy](DEPLOYMENT_GUIDE.md)
+[Repository](https://github.com/MingJien/cloudservice-team3) · [Kiến trúc & đánh giá cuối](docs/18-final-architecture-review.md) · [Hướng dẫn deploy](DEPLOYMENT_GUIDE.md)
 
 ## Tổng quan
 
