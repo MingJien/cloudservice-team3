@@ -2,8 +2,8 @@
 
 ## 1. Điểm bắt đầu
 
-- Repository nộp bài: <https://github.com/MingJien/cloudservice-source>
-- Nhánh dùng để chấm: [`main`](https://github.com/MingJien/cloudservice-source/tree/main)
+- Repository nộp bài: <https://github.com/MingJien/cloudservice-team3>
+- Nhánh dùng để chấm: [`main`](https://github.com/MingJien/cloudservice-team3/tree/main)
 - README: [../README.md](../README.md)
 - Swagger sau khi chạy: `http://localhost:8080/swagger`
 

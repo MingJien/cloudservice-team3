@@ -80,6 +80,7 @@ Thumbs.db
 # =========================
 # TEMP
 # =========================
+.docker-session/
 tmp/
 temp/
 *.tmp

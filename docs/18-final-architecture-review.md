@@ -47,7 +47,7 @@ npm test -- --runInBand
 npm run build
 ```
 
-The checked local run produced 29 Domain tests, 37 Application tests and one opt-in integration smoke test (67 total). The integration test starts a pinned SQL Server Testcontainer only when `RUN_INTEGRATION_TESTS=true`; otherwise it exits without touching a developer database. CI enables the flag.
+The checked local run produced 32 Domain tests, 37 Application tests and one opt-in integration smoke test (70 total). The integration test starts a pinned SQL Server Testcontainer only when `RUN_INTEGRATION_TESTS=true`; otherwise it exits without touching a developer database. CI enables the flag.
 
 The new `.github/workflows/main.yml` performs restore/build/test/coverage, SQL Server Testcontainers, frontend lint/typecheck/Jest/build, Docker Compose readiness and Playwright recording upload. `scripts/load/k6-orders.js` and `docs/load-test-report.md` provide a repeatable load profile; no latency result is claimed until a real artifact is attached.
 
