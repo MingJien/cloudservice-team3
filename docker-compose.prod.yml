@@ -1,0 +1,89 @@
+name: cloudservice-prod
+
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD in .env before starting production Compose}
+      MSSQL_PID: Express
+    volumes:
+      - cloudservice-prod-sqlserver:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$${MSSQL_SA_PASSWORD}\" -C -Q \"SELECT 1\" || /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P \"$${MSSQL_SA_PASSWORD}\" -Q \"SELECT 1\""]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__DefaultConnection: Server=db,1433;Database=CloudServiceDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD in .env before starting production Compose};TrustServerCertificate=True;Encrypt=False
+      Jwt__Secret: ${JWT_SECRET:?Set JWT_SECRET in .env before starting production Compose}
+      Database__ApplyMigrationsOnStartup: "true"
+      Seed__DemoUsers__Enabled: "false" # Đã ra prod thì không seed user demo, trừ khi bạn muốn giữ admin
+      Seed__DemoUsers__ResetPasswordOnStartup: "false"
+      Seed__DemoContent__Enabled: "false"
+      Cors__AllowedOrigins__0: ${PUBLIC_BASE_URL:?Set PUBLIC_BASE_URL in .env before starting production Compose}
+      PublicBaseUrl: ${PUBLIC_BASE_URL:?Set PUBLIC_BASE_URL in .env before starting production Compose}
+      Telegram__Enabled: ${TELEGRAM_ENABLED:-false}
+      Telegram__BotToken: ${TELEGRAM_BOT_TOKEN:-}
+      Telegram__ChatId: ${TELEGRAM_CHAT_ID:-}
+      Telegram__PublicBaseUrl: ${PUBLIC_BASE_URL:?Set PUBLIC_BASE_URL in .env before starting production Compose}
+      Telegram__MaskCustomerContact: ${TELEGRAM_MASK_CUSTOMER_CONTACT:-true}
+    volumes:
+      - cloudservice-prod-api-avatars:/app/wwwroot/avatars
+      - cloudservice-prod-api-branding:/app/wwwroot/branding
+      - cloudservice-prod-api-plan-images:/app/wwwroot/plan-images
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent --show-error http://localhost:8080/health/ready > /dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      args:
+        # Compose always serves frontend and API behind the same Nginx origin.
+        # A relative base survives a new Quick-Tunnel hostname without rebuilding
+        # the browser bundle; external Vercel/Render deployment may override it.
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-/api}
+        NEXT_PUBLIC_DEMO_MODE: ${NEXT_PUBLIC_DEMO_MODE:-false}
+    environment:
+      NODE_ENV: production
+      BACKEND_API_BASE_URL: http://api:8080/api
+      # Local HTTP demo must keep this false. Set true only when TLS terminates
+      # before Nginx (HTTPS public deployment).
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Nginx Reverse Proxy: Hứng toàn bộ traffic cổng 80 và điều phối về api/frontend
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - api
+      - frontend
+    restart: unless-stopped
+
+volumes:
+  cloudservice-prod-sqlserver:
+  cloudservice-prod-api-avatars:
+  cloudservice-prod-api-branding:
+  cloudservice-prod-api-plan-images:

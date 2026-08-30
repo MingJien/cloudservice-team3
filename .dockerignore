@@ -1,0 +1,13 @@
+**/node_modules
+**/.next
+**/bin
+**/obj
+**/.vs
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+tmp
+database/exports
+database/uploads
