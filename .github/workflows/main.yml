@@ -105,12 +105,13 @@ jobs:
           RUN_E2E_ADMIN: "true"
       - name: Install k6
         uses: grafana/setup-k6-action@v1
-      - name: Run 500-VU API smoke load test
+      - name: Run deterministic API load smoke test
         uses: grafana/run-k6-action@v1
         with:
           path: scripts/load/k6-orders.js
         env:
           BASE_URL: http://localhost:8080
+          K6_PROFILE: ci
           K6_NO_USAGE_REPORT: "true"
       - name: Upload Playwright report and recordings
         if: always()

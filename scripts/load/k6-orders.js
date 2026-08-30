@@ -3,18 +3,26 @@ import { check, sleep } from "k6";
 
 const baseUrl = (__ENV.BASE_URL || "http://localhost:8080").replace(/\/$/, "");
 const api = `${baseUrl}/api`;
+const isCiSmokeProfile = __ENV.K6_PROFILE === "ci";
 
 export const options = {
-  // The default profile is deliberately read-only. Set RUN_ORDER_WRITE=true
-  // only against an isolated database because POST creates real order rows.
-  stages: [
-    { duration: "30s", target: 100 },
-    { duration: "60s", target: 500 },
-    { duration: "30s", target: 0 },
-  ],
+  // CI verifies the load script and public read path without treating a shared
+  // GitHub runner as a performance benchmark. The default remains the 500-VU
+  // campaign used for the recorded load-test report on an isolated machine.
+  stages: isCiSmokeProfile
+    ? [
+        { duration: "10s", target: 20 },
+        { duration: "20s", target: 50 },
+        { duration: "10s", target: 0 },
+      ]
+    : [
+        { duration: "30s", target: 100 },
+        { duration: "60s", target: 500 },
+        { duration: "30s", target: 0 },
+      ],
   thresholds: {
     http_req_failed: ["rate<0.01"],
-    http_req_duration: ["p(95)<500"],
+    http_req_duration: [isCiSmokeProfile ? "p(95)<1000" : "p(95)<500"],
   },
 };
 

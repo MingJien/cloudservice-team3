@@ -26,3 +26,6 @@ The scenario ramps to 500 virtual users and exercises the public plan catalogue.
 | Result artifact | _attach k6 JSON/HTML output_ |
 
 Never claim the thresholds passed until the artifact is attached from a real run.
+# Load-test profile note
+
+GitHub Actions uses `K6_PROFILE=ci`: a short 50-VU, read-only smoke profile that verifies the k6 script and API behavior on a shared runner. The default script profile remains the 500-VU campaign with a P95 target below 500 ms; run and report that profile only against an isolated Docker/VPS environment. CI smoke results must not be presented as a 500-VU benchmark.
