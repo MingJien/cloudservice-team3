@@ -1,4 +1,5 @@
 using CloudService.Application.Features.Auth.Interfaces;
+using CloudService.Application.Common.Exceptions;
 using CloudService.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -48,6 +49,14 @@ public sealed class AuthStore(ApplicationDbContext dbContext) : IAuthStore
 
     public async Task SaveChangesAsync(CancellationToken cancellationToken)
     {
-        await dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException exception)
+            when (exception.Entries.Any(entry => entry.Entity is RefreshToken))
+        {
+            throw new RefreshTokenRotationException();
+        }
     }
 }

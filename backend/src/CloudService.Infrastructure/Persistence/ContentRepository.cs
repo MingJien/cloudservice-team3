@@ -43,23 +43,50 @@ public sealed class ContentRepository(ApplicationDbContext dbContext) : IContent
     public Task<NewsArticle?> GetArticleAsync(int id, CancellationToken cancellationToken) => dbContext.NewsArticles.IgnoreQueryFilters().Include(item => item.Category).SingleOrDefaultAsync(item => item.Id == id, cancellationToken);
     public Task<bool> ArticleSlugExistsAsync(string slug, int? exceptId, CancellationToken cancellationToken) => dbContext.NewsArticles.IgnoreQueryFilters().AnyAsync(item => item.Slug == slug && (exceptId == null || item.Id != exceptId), cancellationToken);
 
-    public async Task<PagedResult<Testimonial>> GetTestimonialsAsync(int pageNumber, int pageSize, bool includeInactive, CancellationToken cancellationToken)
+    public async Task<PagedResult<Testimonial>> GetTestimonialsAsync(int pageNumber, int pageSize, bool includeInactive, bool verifiedOnly, CancellationToken cancellationToken)
     {
-        var query = dbContext.Testimonials.AsNoTracking().Where(item => includeInactive || item.IsActive).OrderBy(item => item.DisplayOrder).ThenBy(item => item.Id);
+        // Filtering in the database, rather than after pagination in the UI,
+        // keeps the public proof feed limited to completed-order submissions.
+        // Pending moderation is deliberately sorted first for the admin queue.
+        var query = dbContext.Testimonials.AsNoTracking()
+            .Include(item => item.OrderRequest)
+                .ThenInclude(order => order!.ServicePlan)
+                    .ThenInclude(plan => plan.Category)
+            .Where(item => (includeInactive || item.IsActive) && (!verifiedOnly || item.IsVerifiedOrder))
+            .OrderByDescending(item => includeInactive && item.ModerationStatus == TestimonialModerationStatus.Pending)
+            .ThenByDescending(item => item.CreatedAt);
         var total = await query.CountAsync(cancellationToken);
         var items = await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToArrayAsync(cancellationToken);
         return PagedResult<Testimonial>.Create(items, pageNumber, pageSize, total);
     }
 
     public Task<Testimonial?> GetTestimonialAsync(int id, CancellationToken cancellationToken) => dbContext.Testimonials.SingleOrDefaultAsync(item => item.Id == id, cancellationToken);
+    public Task<bool> TestimonialExistsForOrderAsync(long orderRequestId, CancellationToken cancellationToken) =>
+        dbContext.Testimonials.AnyAsync(item => item.OrderRequestId == orderRequestId, cancellationToken);
 
     public async Task<PagedResult<ContactRequest>> GetContactsAsync(int pageNumber, int pageSize, ContactRequestStatus? status, string? search, CancellationToken cancellationToken)
     {
         var normalized = search?.Trim().ToUpperInvariant();
-        var query = dbContext.ContactRequests.AsNoTracking().AsQueryable();
+        var query = dbContext.ContactRequests.AsNoTracking().Include(item => item.Parent).Include(item => item.FollowUps).AsQueryable();
         if (status is not null) query = query.Where(item => item.Status == status);
         if (!string.IsNullOrWhiteSpace(normalized)) query = query.Where(item => item.FullName.ToUpper().Contains(normalized) || item.Email.ToUpper().Contains(normalized) || item.Subject.ToUpper().Contains(normalized));
         var ordered = query.OrderByDescending(item => item.CreatedAt);
+        var total = await ordered.CountAsync(cancellationToken);
+        var items = await ordered.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToArrayAsync(cancellationToken);
+        return PagedResult<ContactRequest>.Create(items, pageNumber, pageSize, total);
+    }
+
+    public async Task<PagedResult<ContactRequest>> GetPublicQnAsAsync(int pageNumber, int pageSize, string? subject, CancellationToken cancellationToken)
+    {
+        var normalized = subject?.Trim().ToUpperInvariant();
+        IQueryable<ContactRequest> query = dbContext.ContactRequests
+            .AsNoTracking()
+            .Where(item => item.ParentContactRequestId == null && item.Status == ContactRequestStatus.Replied)
+            .Include(item => item.FollowUps.Where(followUp => followUp.Status == ContactRequestStatus.Replied));
+        if (!string.IsNullOrWhiteSpace(normalized))
+            query = query.Where(item => item.Subject.ToUpper().Contains(normalized));
+
+        var ordered = query.OrderByDescending(item => item.RepliedAt ?? item.CreatedAt);
         var total = await ordered.CountAsync(cancellationToken);
         var items = await ordered.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToArrayAsync(cancellationToken);
         return PagedResult<ContactRequest>.Create(items, pageNumber, pageSize, total);
@@ -74,5 +101,4 @@ public sealed class ContentRepository(ApplicationDbContext dbContext) : IContent
     public void Add(ContactRequest request) => dbContext.ContactRequests.Add(request);
     public void Remove(NewsCategory category) => dbContext.NewsCategories.Remove(category);
     public void Remove(NewsArticle article) => dbContext.NewsArticles.Remove(article);
-    public void Remove(Testimonial testimonial) => dbContext.Testimonials.Remove(testimonial);
 }

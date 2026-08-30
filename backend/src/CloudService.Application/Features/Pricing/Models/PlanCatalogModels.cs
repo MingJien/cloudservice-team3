@@ -37,4 +37,6 @@ public sealed record PromotionCatalogItem(
     int? UsageLimit,
     int UsedCount,
     bool IsActive,
+    decimal? MaxDiscountAmount,
+    decimal MinOrderValue,
     IReadOnlyCollection<int> ServicePlanIds);

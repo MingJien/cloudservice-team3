@@ -41,6 +41,8 @@ public sealed class OrderRepository(ApplicationDbContext dbContext) : IOrderRepo
         var query = dbContext.OrderRequests.IgnoreQueryFilters().AsNoTracking().Include(order => order.PlanPrice).Include(order => order.AffiliateAttribution).AsQueryable();
         if (status is not null) query = query.Where(order => order.Status == status);
         if (!string.IsNullOrWhiteSpace(normalized)) query = query.Where(order => order.TrackingCode.ToUpper().Contains(normalized) || order.CustomerName.ToUpper().Contains(normalized) || order.Email.ToUpper().Contains(normalized));
-        return await query.OrderByDescending(order => order.CreatedAt).Take(5000).ToArrayAsync(cancellationToken);
+        // Fetch one sentinel row so the job can fail explicitly instead of
+        // silently delivering a truncated business report.
+        return await query.OrderByDescending(order => order.CreatedAt).Take(5001).ToArrayAsync(cancellationToken);
     }
 }

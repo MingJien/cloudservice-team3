@@ -53,6 +53,8 @@ public sealed class PlanCatalogReadStore(ApplicationDbContext dbContext) : IPlan
                 promotion.UsageLimit,
                 promotion.UsedCount,
                 promotion.IsActive,
+                promotion.MaxDiscountAmount,
+                promotion.MinOrderValue,
                 promotion.PromotionServicePlans.Select(item => item.ServicePlanId).ToArray());
     }
 

@@ -1,5 +1,6 @@
 using CloudService.Application.Common.Models;
 using CloudService.Application.Features.Content.Models;
+using CloudService.Domain.Enums;
 
 namespace CloudService.Application.Features.Content.Interfaces;
 
@@ -18,15 +19,13 @@ public interface IContentService
     Task DeactivateArticleAsync(int id, int userId, string? ipAddress, CancellationToken cancellationToken);
     Task PermanentlyDeleteArticleAsync(int id, int userId, string? ipAddress, CancellationToken cancellationToken);
     Task<NewsArticleItem> RestoreArticleAsync(int id, int userId, string? ipAddress, CancellationToken cancellationToken);
-    Task<PagedResult<TestimonialItem>> GetTestimonialsAsync(int pageNumber, int pageSize, bool includeInactive, CancellationToken cancellationToken);
-    Task<TestimonialItem> CreateTestimonialAsync(TestimonialRequest request, int userId, string? ipAddress, CancellationToken cancellationToken);
-    Task<TestimonialItem> UpdateTestimonialAsync(int id, TestimonialRequest request, int userId, string? ipAddress, CancellationToken cancellationToken);
-    Task DeactivateTestimonialAsync(int id, int userId, string? ipAddress, CancellationToken cancellationToken);
-    Task PermanentlyDeleteTestimonialAsync(int id, int userId, string? ipAddress, CancellationToken cancellationToken);
+    Task<PagedResult<TestimonialItem>> GetTestimonialsAsync(int pageNumber, int pageSize, bool includeInactive, bool verifiedOnly, CancellationToken cancellationToken);
     Task<TestimonialItem> SetTestimonialStatusAsync(int id, bool isActive, int userId, string? ipAddress, CancellationToken cancellationToken);
+    Task<TestimonialSubmissionResult> SubmitTestimonialAsync(SubmitTestimonialRequest request, CancellationToken cancellationToken);
     Task<ContactRequestItem> CreateContactAsync(CreateContactRequest request, CancellationToken cancellationToken);
     Task<PublicContactStatusItem> GetContactStatusAsync(string trackingCode, CancellationToken cancellationToken);
     Task<PagedResult<ContactRequestItem>> GetContactsAsync(ContactListQuery query, CancellationToken cancellationToken);
+    Task<PagedResult<PublicQnAItem>> GetPublicQnAsAsync(PublicQnAQuery query, CancellationToken cancellationToken);
     Task UpdateContactStatusAsync(long id, UpdateContactStatusRequest request, int userId, string? ipAddress, CancellationToken cancellationToken);
-    Task ReplyToContactAsync(long id, ReplyContactRequest request, int userId, string? ipAddress, CancellationToken cancellationToken);
+    Task ReplyToContactAsync(long id, ReplyContactRequest request, ContactResponderRole responderRole, int userId, string? ipAddress, CancellationToken cancellationToken);
 }

@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ErrorState } from "@/components/ui/error-state";
+import { CommunityEngagementPanel } from "@/components/public/community-engagement-panel";
 import { getPlans } from "@/features/catalog/api";
 import type { Plan } from "@/features/catalog/types";
 
@@ -17,6 +18,7 @@ function ServicesContent() {
   const [error, setError] = useState("");
   const searchParams = useSearchParams();
   const categoryFilter = searchParams.get("category");
+  const selectedCategory = plans.find((plan) => plan.categorySlug === categoryFilter)?.categoryName ?? null;
 
   useEffect(() => {
     getPlans("pageNumber=1&pageSize=100")
@@ -27,7 +29,7 @@ function ServicesContent() {
   const filtered = plans.filter((plan) => {
     const matchesSearch = `${plan.name} ${plan.categoryName} ${plan.shortDescription ?? ""}`.toLowerCase().includes(search.toLowerCase());
     const matchesCategory = categoryFilter
-      ? plan.categoryName.toLowerCase().includes(categoryFilter.toLowerCase())
+      ? plan.categorySlug === categoryFilter
       : true;
     return matchesSearch && matchesCategory;
   });
@@ -35,8 +37,8 @@ function ServicesContent() {
   return (
     <Container>
       <PageHeading
-        title={categoryFilter ? `Dịch vụ ${categoryFilter.toUpperCase()}` : "Dịch vụ cloud"}
-        description="Catalog public lấy dữ liệu từ API, cấu hình minh bạch, tự động triển khai."
+        title={categoryFilter && plans.length > 0 ? `Dịch vụ ${selectedCategory ?? categoryFilter.toUpperCase()}` : "Dịch vụ cloud"}
+        description="Catalog public lấy dữ liệu từ nguồn, cấu hình minh bạch, tự động triển khai."
       />
       <div className="mb-8 max-w-xl">
         <Input
@@ -88,6 +90,12 @@ function ServicesContent() {
         <Card className="text-center text-slate-600 dark:text-slate-400 p-12">
           Chưa có gói phù hợp với bộ lọc.
         </Card>
+      )}
+
+      {categoryFilter && (
+        <div className="mt-16">
+          <CommunityEngagementPanel initialSubjectFilter={selectedCategory?.split(" ")[0] ?? null} initialReviewCategory={selectedCategory} />
+        </div>
       )}
     </Container>
   );

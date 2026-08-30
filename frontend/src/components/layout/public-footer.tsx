@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Container } from "./container";
+import { BrandLockup } from "@/components/brand/logo";
 
 function IconMail() {
   return (
@@ -22,11 +23,12 @@ export function PublicFooter() {
       <Container className="relative z-10 grid gap-12 lg:grid-cols-4 md:grid-cols-2">
         {/* Brand Column */}
         <div className="lg:col-span-1">
-          <Link href="/" className="group text-xl font-bold tracking-tight">
-            <span className="text-white">Mekong</span>
-            <span className="bg-gradient-to-r from-river-600 to-accent-cyan bg-clip-text text-transparent">
-              Node
-            </span>
+          <Link href="/" className="group" aria-label="MekongNode - Trang chủ">
+            <BrandLockup
+              markClassName="h-10 w-10 transition-transform duration-300 group-hover:scale-[1.06]"
+              nameClassName="text-xl"
+              tone="on-dark"
+            />
           </Link>
           <p className="mt-4 text-sm leading-6 text-white/60">
             Đồ án nhóm về nền tảng Cloud/VPS: danh mục dịch vụ, báo giá từ API, advisor theo luật và quản trị theo vai trò.
@@ -56,6 +58,7 @@ export function PublicFooter() {
           <ul className="mt-4 space-y-3 text-sm text-white/60">
             <li><Link href="/orders/track" className="hover:text-accent-cyan transition-colors">Tra cứu đơn hàng</Link></li>
             <li><Link href="/pricing" className="hover:text-accent-cyan transition-colors">Bảng giá</Link></li>
+            <li><Link href="/offers" className="hover:text-accent-cyan transition-colors">Ưu đãi đang áp dụng</Link></li>
             <li><Link href="/advisor" className="hover:text-accent-cyan transition-colors">Công cụ tư vấn</Link></li>
             <li><Link href="/blog" className="hover:text-accent-cyan transition-colors">Blog kỹ thuật</Link></li>
             <li><Link href="/order" className="hover:text-accent-cyan transition-colors">Đặt dịch vụ</Link></li>

@@ -22,10 +22,10 @@ export function Modal({ open, title, children, onClose }: ModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-ink-950/60 p-4" role="presentation" onMouseDown={onClose}>
-      <section aria-modal="true" aria-labelledby="modal-title" className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl" role="dialog" onMouseDown={(event) => event.stopPropagation()}>
+      <section aria-modal="true" aria-labelledby="modal-title" className="w-full max-w-lg rounded-2xl border border-[#d4e4ee] bg-white p-6 text-[#07101f] shadow-[0_28px_80px_-30px_rgba(3,30,54,.55)] dark:border-white/10 dark:bg-[#0b192d] dark:text-white" role="dialog" onMouseDown={(event) => event.stopPropagation()}>
         <div className="flex items-start justify-between gap-4">
           <h2 id="modal-title" className="text-xl font-bold">{title}</h2>
-          <button type="button" onClick={onClose} className="min-h-11 min-w-11 rounded-xl text-slate-600 hover:bg-ice-100" aria-label="Đóng hộp thoại">×</button>
+          <button type="button" onClick={onClose} className="min-h-11 min-w-11 rounded-xl text-slate-600 hover:bg-ice-100 dark:text-slate-300 dark:hover:bg-white/[0.07]" aria-label="Đóng hộp thoại">×</button>
         </div>
         <div className="mt-5">{children}</div>
       </section>

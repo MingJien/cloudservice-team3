@@ -9,9 +9,9 @@ public sealed class ContactRequest : LongAuditableEntity
     {
     }
 
-    public ContactRequest(string fullName, string email, string subject, string message)
+    public ContactRequest(string trackingCode, string fullName, string email, string subject, string message)
     {
-        TrackingCode = Guid.NewGuid().ToString("N");
+        TrackingCode = Guard.Required(trackingCode, nameof(trackingCode));
         FullName = Guard.Required(fullName, nameof(fullName));
         Email = Guard.Required(email, nameof(email));
         Subject = Guard.Required(subject, nameof(subject));
@@ -25,10 +25,26 @@ public sealed class ContactRequest : LongAuditableEntity
     public string Subject { get; private set; } = string.Empty;
     public string Message { get; private set; } = string.Empty;
     public string? AdminReply { get; private set; }
+    public ContactResponderRole? RepliedByRole { get; private set; }
     public DateTime? RepliedAt { get; private set; }
     public ContactRequestStatus Status { get; private set; } = ContactRequestStatus.New;
+    public long? ParentContactRequestId { get; private set; }
+    public ContactRequest? Parent { get; private set; }
+    public ICollection<ContactRequest> FollowUps { get; private set; } = [];
 
     public void SetPhone(string? phone) => Phone = string.IsNullOrWhiteSpace(phone) ? null : phone.Trim();
+
+    public void AttachToPublicQuestion(ContactRequest parent)
+    {
+        ArgumentNullException.ThrowIfNull(parent);
+        if (parent.Id <= 0) throw new InvalidOperationException("Câu hỏi gốc chưa được lưu.");
+        if (parent.ParentContactRequestId is not null) throw new InvalidOperationException("Chỉ có thể hỏi tiếp từ câu hỏi gốc.");
+        if (parent.Status != ContactRequestStatus.Replied || string.IsNullOrWhiteSpace(parent.AdminReply))
+            throw new InvalidOperationException("Chỉ có thể hỏi tiếp câu hỏi đã được công khai và trả lời.");
+
+        ParentContactRequestId = parent.Id;
+        Parent = parent;
+    }
 
     public void ChangeStatus(ContactRequestStatus status)
     {
@@ -45,12 +61,15 @@ public sealed class ContactRequest : LongAuditableEntity
         Status = status;
     }
 
-    public void Reply(string reply)
+    public void Reply(string reply, ContactResponderRole responderRole)
     {
         if (Status is not (ContactRequestStatus.New or ContactRequestStatus.Read or ContactRequestStatus.Replied))
             throw new InvalidOperationException($"Contact cannot be replied to while in {Status} status.");
+        if (!Enum.IsDefined(responderRole))
+            throw new ArgumentOutOfRangeException(nameof(responderRole));
 
         AdminReply = Guard.Required(reply, nameof(reply));
+        RepliedByRole = responderRole;
         RepliedAt = DateTime.UtcNow;
         Status = ContactRequestStatus.Replied;
     }

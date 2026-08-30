@@ -1,16 +1,16 @@
 # CloudService — final audit & traceability
 
-Ngày rà soát: **2026-08-21**. Mọi thay đổi trong vòng rà soát này nằm trong thư mục `CloudService`.
+Ngày rà soát gần nhất: **2026-08-23**. Mọi thay đổi trong vòng rà soát này nằm trong thư mục `CloudService`.
 
 Tài liệu này đối chiếu `de-bai-tap-lon-cuoi-ky.pdf`, phân công/contract trong `team-cloud-starter-v2/docs` và nội dung `BaiGiang`. Kết luận chỉ dựa trên bằng chứng có thể kiểm tra; không tự tạo lịch sử Git, PR, coverage hoặc số liệu demo.
 
 ## 1. Kết luận điều hành
 
 - **Bốn phần code của bốn thành viên đã hoàn thành và tích hợp end-to-end**: nền tảng/auth, catalog/pricing/QR, order/affiliate/dashboard/export, public/content/admin.
-- Backend .NET 10 build Release `0 warning / 0 error`; **39/39 test** xanh và đã sinh báo cáo Cobertura thật.
-- Frontend lint, TypeScript strict và production build đều xanh; Next.js sinh **36 trang/route**.
-- F5-equivalent bằng đúng tài khoản Windows đã kết nối SQL Server `MSI\MCHIENCS`, migration/seed thành công; liveness, readiness, catalog, Swagger và OpenAPI đều HTTP 200.
-- Landing page đã dùng `hero-bg.png`, bố cục hai cột, mesh/glass/glow, typography Be Vietnam Pro, scroll reveal và reduced-motion fallback; QA thật ở 1280 px và 390 px không tràn ngang, không lỗi console, không lỗi mã hóa tiếng Việt.
+- Backend .NET 10 build Release `0 warning / 0 error`; **58/58 test** xanh và đã sinh 2 báo cáo Cobertura thật.
+- Frontend lint, TypeScript strict và production build đều xanh; Next.js sinh **37 trang/route**.
+- F5-equivalent đã kết nối SQL Server local, chạy migration mới và seed idempotent thành công; liveness/readiness ở cổng 8080 đều HTTP 200.
+- Landing/About/Blog/Affiliate đã QA thật ở desktop và 390 x 844: light/dark đọc rõ, không tràn ngang, không lỗi console, không lỗi mã hóa tiếng Việt; ảnh minh họa cloud tải local qua `next/image`.
 - **Hồ sơ nộp bài chưa thể gọi là hoàn tất 100%** nếu chưa có 10 PR thật, commit/review đồng đều của 4 thành viên, báo cáo PDF 15–25 trang và slide/demo. Đây là bằng chứng con người/nhóm phải cung cấp, không được giả lập bằng AI.
 
 ## 2. Bốn gói công việc
@@ -20,7 +20,7 @@ Tài liệu này đối chiếu `de-bai-tap-lon-cuoi-ky.pdf`, phân công/contra
 | TV1 — nền tảng | Clean Architecture 4 lớp, DI, EF Core, JWT/refresh rotation, PBKDF2, RBAC, audit, BFF cookie, CI/Docker/runbook | Hoàn thành code |
 | TV2 — catalog | Category/plan/price/promotion CRUD, pricing/compare, QR, seed, public catalog, admin catalog, audit | Hoàn thành code |
 | Gói A — vận hành | Order + tracking + workflow, affiliate, dashboard KPI/chart, Excel `.xlsx`, admin operations | Hoàn thành code |
-| Gói B — public/content | Landing, about/datacenter/SLA, services, blog, testimonial, contact, admin content | Hoàn thành code |
+| Gói B — public/content | Landing, About B2B/timeline, blog server paging/search, testimonial từ đơn hoàn tất, contact, admin content | Hoàn thành code |
 
 ## 3. Ma trận yêu cầu đề bài
 
@@ -36,10 +36,10 @@ Tài liệu này đối chiếu `de-bai-tap-lon-cuoi-ky.pdf`, phân công/contra
 | Public pages | Bộ route public cùng landing data-driven | Có |
 | Catalog/pricing/compare/advisor/QR | Features và public UI tương ứng | Có |
 | Order/tracking/affiliate/contact | API, database, public form và admin workflow | Có |
-| Blog/testimonial | CRUD, publish, list/detail/search/category/paging | Có |
+| Blog/testimonial | CRUD, publish, list/detail/search/category/server paging; đánh giá đã xác minh, consent, moderation, chống gửi trùng | Có |
 | Dashboard + chart | KPI, status, monthly series, top plans | Có |
 | Excel export | `OrderXlsxExportFormatter` + endpoint/nút download | Có |
-| Ít nhất 15 unit test + coverage | 39 test; `coverlet.collector`; `coverage.runsettings`; CI upload Cobertura | Có |
+| Ít nhất 15 unit test + coverage | 58 test; `coverlet.collector`; `coverage.runsettings`; CI upload Cobertura | Có |
 | CI/CD | `.github/workflows/ci.yml` build/test/coverage/lint/build | Có config; cần URL run xanh thật |
 | Docker API + SQL Server | multi-stage Dockerfile, compose DB/API/frontend, readiness gate | Có config; cần chạy lại khi Docker Desktop hoạt động |
 | Git teamwork | `docs/10-team-contribution-template.md` | Chưa thể xác minh PR/commit thật từ gói file hiện tại |
@@ -55,19 +55,19 @@ Tài liệu này đối chiếu `de-bai-tap-lon-cuoi-ky.pdf`, phân công/contra
 | EF Core/Dapper | EF Core cho CRUD/migration, `AsNoTracking` cho read, query parameterized, paging; chưa dùng Dapper vì chưa có benchmark chứng minh cần |
 | REST | Noun routes, verb/status đúng, DTO, ProblemDetails, Swagger/OpenAPI; API contract được ghi là v1 nhưng URL chưa prefix `/api/v1` |
 | Security | PBKDF2, JWT ngắn hạn, refresh hash/rotation, cookie HttpOnly, rate limit, RBAC, audit không ghi secret; Production fail-fast nếu dùng secret/seed demo |
-| Testing | AAA/FIRST, happy/edge/invariant, 39 test và Cobertura; coverage là chỉ báo chứ không thay thế chất lượng test |
+| Testing | AAA/FIRST, happy/edge/invariant, 58 test và Cobertura; coverage là chỉ báo chứ không thay thế chất lượng test |
 | Git/CI/Docker | Small-commit/PR rules trong docs; CI fail fast; Docker multi-stage; compose có DB health và API readiness |
 | Vận hành | Liveness `/health`, readiness DB `/health/ready`, logging console/debug, env secret, runbook/rollback boundary |
 
-## 5. Release checks thực tế ngày 2026-08-20
+## 5. Release checks thực tế ngày 2026-08-23
 
 ```text
 dotnet restore backend/CloudService.sln                         PASS
 dotnet build backend/CloudService.sln -c Release --no-restore  PASS (0 warning, 0 error)
-dotnet test ... --collect:"XPlat Code Coverage"                PASS (36/36 + 2 Cobertura files)
+dotnet test ... --collect:"XPlat Code Coverage"                PASS (58/58 + 2 Cobertura files)
 frontend: npm run lint                                         PASS
 frontend: npx tsc --noEmit                                     PASS
-frontend: npm run build                                        PASS (36 pages/routes)
+frontend: npm run build                                        PASS (37 pages/routes)
 frontend: npm audit --audit-level=high                         PASS (0 vulnerabilities)
 docker compose config --quiet                                  PASS
 ```
@@ -76,18 +76,21 @@ Coverage hiện tại sau khi lọc đúng Domain/Application:
 
 | Test suite | Line | Branch | Ghi chú |
 |---|---:|---:|---|
-| Domain | 39,56% | 27,17% | 12 test |
-| Application | 38,23% | 18,58% | 24 test; report có cả Domain được tham chiếu |
+| Domain | 49,79% | 39,52% | 24 test |
+| Application report | 32,24% | 17,17% | 34 test; report gồm cả assembly được tham chiếu theo cấu hình collector |
 
 Coverage đã đáp ứng yêu cầu “có báo cáo” nhưng chưa phải mức cao. Nếu còn thời gian, ưu tiên test cho validation/status transitions/content/order edge cases thay vì viết test chỉ để tăng phần trăm.
 
 Smoke test bằng đúng tài khoản Windows như khi bấm F5:
 
 ```text
-SQL Server MSI\MCHIENCS                                      CONNECTED
+SQL Server local                                             CONNECTED
 EF Core migration                                            DATABASE UP TO DATE
 GET /health                                                  200
 GET /health/ready                                            200 (database Connected)
+GET /api/testimonials                                        200 (có cờ verified/featured)
+POST /api/testimonials/submissions thiếu consent             400 ProblemDetails
+POST /api/testimonials/submissions mã không tồn tại           404 ProblemDetails
 GET /api/service-categories                                  200
 GET /api/service-plans                                       200 (6 plans)
 GET /swagger/index.html                                      200

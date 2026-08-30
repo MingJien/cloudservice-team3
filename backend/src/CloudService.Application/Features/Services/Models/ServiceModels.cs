@@ -67,6 +67,8 @@ public sealed record PromotionItem(
     int UsedCount,
     bool IsActive,
     IReadOnlyCollection<int> ServicePlanIds,
+    decimal? MaxDiscountAmount,
+    decimal MinOrderValue,
     string? RowVersion = null);
 
 public sealed record QrCodeResult(int ServicePlanId, string TargetUrl, string DataUrl, DateTime GeneratedAt);
@@ -122,6 +124,8 @@ public sealed class PromotionRequest
     public DateTime EndAt { get; init; }
     [Range(1, int.MaxValue)] public int? UsageLimit { get; init; }
     public IReadOnlyCollection<int> ServicePlanIds { get; init; } = Array.Empty<int>();
+    [Range(typeof(decimal), "0", "9999999999999999")] public decimal? MaxDiscountAmount { get; init; }
+    [Range(typeof(decimal), "0", "9999999999999999")] public decimal MinOrderValue { get; init; } = 0;
     [StringLength(64)] public string? RowVersion { get; init; }
 }
 

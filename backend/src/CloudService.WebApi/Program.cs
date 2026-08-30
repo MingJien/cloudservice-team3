@@ -11,6 +11,7 @@ using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var seedDemoOnly = args.Any(argument => string.Equals(argument, "--seed-demo", StringComparison.OrdinalIgnoreCase));
 var jwtSecret = builder.Configuration["Jwt:Secret"];
 var demoUsersEnabled = builder.Configuration.GetValue<bool>("Seed:DemoUsers:Enabled");
 var demoPasswordResetEnabled = builder.Configuration.GetValue<bool>("Seed:DemoUsers:ResetPasswordOnStartup");
@@ -31,11 +32,24 @@ if (!builder.Environment.IsDevelopment())
     }
 }
 
+if (seedDemoOnly && !builder.Environment.IsDevelopment())
+{
+    throw new InvalidOperationException("The --seed-demo command is restricted to the Development environment.");
+}
+
 // Console + Debug work consistently in Visual Studio and containers without
 // requiring permission to write to the Windows Event Log.
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
+// Telegram requires the bot token in the request path. The default
+// HttpClientFactory diagnostics logger would therefore echo that secret into
+// container logs at Information level. Keep the worker's own operational
+// logs, but disable the transport category so credentials can never leak via
+// request/response tracing.
+builder.Logging.AddFilter(
+    "System.Net.Http.HttpClient.TelegramNotificationSender",
+    Microsoft.Extensions.Logging.LogLevel.None);
 
 builder.Services
     .AddControllers()
@@ -83,6 +97,14 @@ var orderPermitLimit = builder.Configuration.GetValue("OrderRateLimit:PermitLimi
 var orderWindowSeconds = builder.Configuration.GetValue("OrderRateLimit:WindowSeconds", 300);
 var referralPermitLimit = builder.Configuration.GetValue("AffiliateReferralRateLimit:PermitLimit", 30);
 var referralWindowSeconds = builder.Configuration.GetValue("AffiliateReferralRateLimit:WindowSeconds", 60);
+var testimonialPermitLimit = builder.Configuration.GetValue("TestimonialRateLimit:PermitLimit", 3);
+var testimonialWindowSeconds = builder.Configuration.GetValue("TestimonialRateLimit:WindowSeconds", 600);
+var contactPermitLimit = builder.Configuration.GetValue("ContactRateLimit:PermitLimit", 5);
+var contactWindowSeconds = builder.Configuration.GetValue("ContactRateLimit:WindowSeconds", 600);
+var affiliateApplicationPermitLimit = builder.Configuration.GetValue("AffiliateApplicationRateLimit:PermitLimit", 3);
+var affiliateApplicationWindowSeconds = builder.Configuration.GetValue("AffiliateApplicationRateLimit:WindowSeconds", 600);
+var affiliateTrackingPermitLimit = builder.Configuration.GetValue("AffiliateTrackingRateLimit:PermitLimit", 30);
+var affiliateTrackingWindowSeconds = builder.Configuration.GetValue("AffiliateTrackingRateLimit:WindowSeconds", 300);
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -113,10 +135,57 @@ builder.Services.AddRateLimiter(options =>
             QueueLimit = 0,
             AutoReplenishment = true
         }));
+    options.AddPolicy("testimonial-submit", httpContext => RateLimitPartition.GetFixedWindowLimiter(
+        httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = testimonialPermitLimit,
+            Window = TimeSpan.FromSeconds(testimonialWindowSeconds),
+            QueueLimit = 0,
+            AutoReplenishment = true
+        }));
+    options.AddPolicy("contact-submit", httpContext => RateLimitPartition.GetFixedWindowLimiter(
+        httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = contactPermitLimit,
+            Window = TimeSpan.FromSeconds(contactWindowSeconds),
+            QueueLimit = 0,
+            AutoReplenishment = true
+        }));
+    options.AddPolicy("affiliate-application", httpContext => RateLimitPartition.GetFixedWindowLimiter(
+        httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = affiliateApplicationPermitLimit,
+            Window = TimeSpan.FromSeconds(affiliateApplicationWindowSeconds),
+            QueueLimit = 0,
+            AutoReplenishment = true
+        }));
+    options.AddPolicy("affiliate-tracking", httpContext => RateLimitPartition.GetFixedWindowLimiter(
+        httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = affiliateTrackingPermitLimit,
+            Window = TimeSpan.FromSeconds(affiliateTrackingWindowSeconds),
+            QueueLimit = 0,
+            AutoReplenishment = true
+        }));
     options.OnRejected = async (context, cancellationToken) =>
     {
         var isOrderRequest = context.HttpContext.Request.Path.StartsWithSegments("/api/order-requests");
-        var retryAfter = isOrderRequest ? orderWindowSeconds : authWindowSeconds;
+        var isTestimonialSubmission = context.HttpContext.Request.Path.StartsWithSegments("/api/testimonials/submissions");
+        var isContactSubmission = context.HttpContext.Request.Path.StartsWithSegments("/api/contact-requests")
+            && HttpMethods.IsPost(context.HttpContext.Request.Method);
+        var isAffiliateApplication = context.HttpContext.Request.Path.StartsWithSegments("/api/affiliate-applications")
+            && HttpMethods.IsPost(context.HttpContext.Request.Method);
+        var retryAfter = isOrderRequest
+            ? orderWindowSeconds
+            : isTestimonialSubmission
+                ? testimonialWindowSeconds
+                : isContactSubmission
+                    ? contactWindowSeconds
+                    : isAffiliateApplication ? affiliateApplicationWindowSeconds : authWindowSeconds;
         context.HttpContext.Response.Headers.RetryAfter = retryAfter.ToString(System.Globalization.CultureInfo.InvariantCulture);
         var problem = new ProblemDetails
         {
@@ -124,7 +193,9 @@ builder.Services.AddRateLimiter(options =>
             Title = "Quá nhiều yêu cầu.",
             Detail = isOrderRequest
                 ? "Mỗi địa chỉ IP chỉ được gửi tối đa 3 yêu cầu đặt dịch vụ trong 5 phút. Vui lòng chờ rồi thử lại."
-                : "Vui lòng chờ trước khi thử lại.",
+                : isTestimonialSubmission
+                    ? "Bạn đã gửi quá nhiều đánh giá trong thời gian ngắn. Vui lòng chờ rồi thử lại."
+                    : "Vui lòng chờ trước khi thử lại.",
             Instance = context.HttpContext.Request.Path
         };
         problem.Extensions["traceId"] = context.HttpContext.TraceIdentifier;
@@ -145,7 +216,10 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("Frontend", policy =>
     {
-        policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod();
+        policy.WithOrigins(allowedOrigins)
+            .WithHeaders("Accept", "Authorization", "Content-Type", "Idempotency-Key", "If-Match")
+            .WithMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
+            .SetPreflightMaxAge(TimeSpan.FromHours(1));
     });
 });
 
@@ -154,6 +228,14 @@ var app = builder.Build();
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 app.UseForwardedHeaders();
+app.Use(async (context, next) =>
+{
+    context.Response.Headers.XContentTypeOptions = "nosniff";
+    context.Response.Headers.XFrameOptions = "DENY";
+    context.Response.Headers["Referrer-Policy"] = "no-referrer";
+    context.Response.Headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()";
+    await next();
+});
 app.UseStaticFiles();
 app.UseCors("Frontend");
 app.UseRateLimiter();
@@ -201,6 +283,14 @@ if (app.Configuration.GetValue<bool>("Database:ApplyMigrationsOnStartup") ||
 
     await scope.ServiceProvider.GetRequiredService<DatabaseSeeder>().SeedDemoUsersAsync();
     await scope.ServiceProvider.GetRequiredService<DatabaseSeeder>().SeedDemoContentAsync();
+}
+
+// The demo overlay uses this short-lived command to provision classroom data
+// without weakening the long-running Production process: the normal API still
+// starts with demo seeding disabled and the guard above remains effective.
+if (seedDemoOnly)
+{
+    return;
 }
 
 await app.RunAsync();

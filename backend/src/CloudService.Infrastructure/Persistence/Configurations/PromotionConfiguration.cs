@@ -15,6 +15,8 @@ public sealed class PromotionConfiguration : IEntityTypeConfiguration<Promotion>
             table.HasCheckConstraint("CK_Promotions_Percentage", "[DiscountType] <> 'Percentage' OR [DiscountValue] <= 100");
             table.HasCheckConstraint("CK_Promotions_DateRange", "[EndAt] > [StartAt]");
             table.HasCheckConstraint("CK_Promotions_Usage", "[UsedCount] >= 0 AND ([UsageLimit] IS NULL OR ([UsageLimit] > 0 AND [UsedCount] <= [UsageLimit]))");
+            table.HasCheckConstraint("CK_Promotions_MaxDiscount", "[MaxDiscountAmount] IS NULL OR [MaxDiscountAmount] > 0");
+            table.HasCheckConstraint("CK_Promotions_MinOrder", "[MinOrderValue] >= 0");
         });
         builder.HasKey(x => x.Id).HasName("PK_Promotions");
         builder.Property(x => x.Code).HasColumnType("varchar(50)").IsRequired();
@@ -22,6 +24,8 @@ public sealed class PromotionConfiguration : IEntityTypeConfiguration<Promotion>
         builder.Property(x => x.Description).HasMaxLength(1000);
         builder.Property(x => x.DiscountType).HasConversion<string>().HasColumnType("varchar(20)");
         builder.Property(x => x.DiscountValue).HasPrecision(18, 2);
+        builder.Property(x => x.MaxDiscountAmount).HasPrecision(18, 2);
+        builder.Property(x => x.MinOrderValue).HasPrecision(18, 2).HasDefaultValue(0m);
         builder.Property(x => x.StartAt).HasColumnType("datetime2(0)");
         builder.Property(x => x.EndAt).HasColumnType("datetime2(0)");
         builder.Property(x => x.UsedCount).HasDefaultValue(0);

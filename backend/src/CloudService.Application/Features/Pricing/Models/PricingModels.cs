@@ -22,7 +22,8 @@ public sealed record PricingQuoteResponse(
     decimal TotalPrice,
     string Currency,
     AppliedPromotion? Promotion,
-    DateTime CalculatedAtUtc);
+    DateTime CalculatedAtUtc,
+    string QuoteToken = "");
 
 public sealed record AppliedPromotion(string Code, string Name, DiscountType DiscountType, decimal DiscountValue);
 

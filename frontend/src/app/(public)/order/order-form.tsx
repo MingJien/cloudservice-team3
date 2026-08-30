@@ -7,6 +7,7 @@ import { getPlans } from "@/features/catalog/api";
 import type { Plan } from "@/features/catalog/types";
 import { BillingCycleBadge, billingCycleLabels, billingCycles } from "@/features/pricing/billing-cycle";
 import type { BillingCycle } from "@/features/pricing/types";
+import { requestPricingQuote } from "@/features/pricing/api";
 import { Container } from "@/components/layout/container";
 import { PageHeading } from "@/components/layout/page-heading";
 import { Card } from "@/components/ui/card";
@@ -14,7 +15,6 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/error-state";
-import { AFFILIATE_CODE_COOKIE, AFFILIATE_VISIT_COOKIE, normalizeAffiliateCode, readBrowserCookie } from "@/features/affiliates/tracking";
 
 function money(value: number, currency: string) {
   return new Intl.NumberFormat("vi-VN", { style: "currency", currency, maximumFractionDigits: 0 }).format(value);
@@ -86,8 +86,13 @@ export function OrderForm({ initialPlanId, initialPromotionCode = "" }: { initia
     }
     setLoading(true); setError("");
     try {
-      const affiliateCode = normalizeAffiliateCode(readBrowserCookie(AFFILIATE_CODE_COOKIE));
-      const affiliateVisitId = readBrowserCookie(AFFILIATE_VISIT_COOKIE);
+      // Obtain a short-lived, signed quote immediately before submitting. The
+      // API recalculates inside its order transaction and rejects stale prices.
+      const quote = await requestPricingQuote({
+        servicePlanId: selectedPlan.id,
+        billingCycle: cycle,
+        promotionCode: form.promotion.trim() || undefined,
+      });
       const payload = {
         servicePlanId: selectedPlan.id,
         billingCycle: cycle,
@@ -97,8 +102,7 @@ export function OrderForm({ initialPlanId, initialPromotionCode = "" }: { initia
         phone: form.phone.trim(),
         companyName: form.company.trim() || undefined,
         note: form.note.trim() || undefined,
-        affiliateCode: affiliateCode || undefined,
-        affiliateVisitId: affiliateVisitId && /^[0-9a-f-]{36}$/i.test(affiliateVisitId) ? affiliateVisitId : undefined,
+        quoteToken: quote.quoteToken,
       };
       const fingerprint = JSON.stringify(payload);
       if (!submissionAttempt.current || submissionAttempt.current.fingerprint !== fingerprint) {

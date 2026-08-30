@@ -23,6 +23,20 @@ public sealed class DomainInvariantTests
     }
 
     [Fact]
+    public void Order_request_rejects_terminal_state_jump_and_backward_transition()
+    {
+        var order = new OrderRequest("TRACK-002", "Khách hàng", "customer@example.com", "0900000000", 1, 1, "Cloud VPS Basic", BillingCycle.Monthly, 100m, 0m);
+
+        Assert.False(order.CanTransitionTo(OrderRequestStatus.Done));
+        Assert.Throws<InvalidOperationException>(() => order.ChangeStatus(OrderRequestStatus.Done, "Không được nhảy trạng thái"));
+
+        order.ChangeStatus(OrderRequestStatus.Processing, "Đã tiếp nhận");
+        order.ChangeStatus(OrderRequestStatus.Done, "Đã hoàn tất");
+        Assert.False(order.CanTransitionTo(OrderRequestStatus.Processing));
+        Assert.Throws<InvalidOperationException>(() => order.ChangeStatus(OrderRequestStatus.Processing, "Không được quay lui"));
+    }
+
+    [Fact]
     public void Percentage_promotion_rejects_value_above_one_hundred()
     {
         Assert.Throws<ArgumentOutOfRangeException>(() =>

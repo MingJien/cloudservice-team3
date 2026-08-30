@@ -130,7 +130,7 @@ public sealed class ServiceCatalogController(
     public Task<ServicePlanItem> UpdatePlan(int id, ServicePlanRequest request, CancellationToken cancellationToken) =>
         service.UpdatePlanAsync(id, request, UserId(), ClientIp(), cancellationToken);
 
-    [Authorize(Roles = RoleNames.AdminOrEditor)]
+    [Authorize(Roles = RoleNames.Admin)]
     [HttpDelete("service-plans/{id:int}")]
     public async Task<IActionResult> DeletePlan(int id, CancellationToken cancellationToken)
     {
@@ -138,7 +138,7 @@ public sealed class ServiceCatalogController(
         return NoContent();
     }
 
-    [Authorize(Roles = RoleNames.AdminOrEditor)]
+    [Authorize(Roles = RoleNames.Admin)]
     [HttpDelete("service-plans/{id:int}/hard")]
     public async Task<IActionResult> HardDeletePlan(int id, CancellationToken cancellationToken)
     {
@@ -170,7 +170,7 @@ public sealed class ServiceCatalogController(
     public Task<PlanPriceItem> UpdatePrice(int id, PlanPriceRequest request, CancellationToken cancellationToken) =>
         service.UpdatePriceAsync(id, request, UserId(), ClientIp(), cancellationToken);
 
-    [Authorize(Roles = RoleNames.AdminOrEditor)]
+    [Authorize(Roles = RoleNames.Admin)]
     [HttpDelete("plan-prices/{id:int}")]
     public async Task<IActionResult> DeletePrice(int id, CancellationToken cancellationToken)
     {
@@ -178,7 +178,7 @@ public sealed class ServiceCatalogController(
         return NoContent();
     }
 
-    [Authorize(Roles = RoleNames.AdminOrEditor)]
+    [Authorize(Roles = RoleNames.Admin)]
     [HttpDelete("plan-prices/{id:int}/hard")]
     public async Task<IActionResult> HardDeletePrice(int id, CancellationToken cancellationToken)
     {
@@ -219,7 +219,7 @@ public sealed class ServiceCatalogController(
     public Task<PromotionItem> UpdatePromotion(int id, PromotionRequest request, CancellationToken cancellationToken) =>
         service.UpdatePromotionAsync(id, request, UserId(), ClientIp(), cancellationToken);
 
-    [Authorize(Roles = RoleNames.AdminOrEditor)]
+    [Authorize(Roles = RoleNames.Admin)]
     [HttpDelete("promotions/{id:int}")]
     public async Task<IActionResult> DeletePromotion(int id, CancellationToken cancellationToken)
     {
@@ -227,7 +227,7 @@ public sealed class ServiceCatalogController(
         return NoContent();
     }
 
-    [Authorize(Roles = RoleNames.AdminOrEditor)]
+    [Authorize(Roles = RoleNames.Admin)]
     [HttpDelete("promotions/{id:int}/hard")]
     public async Task<IActionResult> HardDeletePromotion(int id, CancellationToken cancellationToken)
     {

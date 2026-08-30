@@ -8,7 +8,7 @@ services:
       MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:-CloudService-Local-Sa-Password-2026!}
       MSSQL_PID: Developer
     ports:
-      - "1433:1433"
+      - "14330:1433"
     volumes:
       - cloudservice-sqlserver:/var/opt/mssql
     healthcheck:
@@ -37,11 +37,22 @@ services:
       Seed__DemoUsers__Editor__Password: ${SEED_EDITOR_PASSWORD:-Editor-Local-Password-2026!}
       Seed__DemoUsers__ResetPasswordOnStartup: ${SEED_DEMO_USERS_RESET_PASSWORD_ON_STARTUP:-true}
       Seed__DemoContent__Enabled: ${SEED_DEMO_CONTENT_ENABLED:-true}
-      Cors__AllowedOrigins__0: http://localhost:3000
-      PublicBaseUrl: http://localhost:3000
+      Cors__AllowedOrigins__0: ${PUBLIC_BASE_URL:-http://localhost:3000}
+      PublicBaseUrl: ${PUBLIC_BASE_URL:-http://localhost:3000}
       Telegram__Enabled: ${TELEGRAM_ENABLED:-false}
       Telegram__BotToken: ${TELEGRAM_BOT_TOKEN:-}
       Telegram__ChatId: ${TELEGRAM_CHAT_ID:-}
+      Telegram__PublicBaseUrl: ${PUBLIC_BASE_URL:-http://localhost:3000}
+      Telegram__MaskCustomerContact: ${TELEGRAM_MASK_CUSTOMER_CONTACT:-true}
+      Smtp__Enabled: ${SMTP_ENABLED:-false}
+      Smtp__Host: ${SMTP_HOST:-smtp.example.com}
+      Smtp__Port: ${SMTP_PORT:-587}
+      Smtp__EnableSsl: ${SMTP_ENABLE_SSL:-true}
+      Smtp__UserName: ${SMTP_USERNAME:-}
+      Smtp__Password: ${SMTP_PASSWORD:-}
+      Smtp__FromEmail: ${SMTP_FROM_EMAIL:-no-reply@mekongnode.local}
+      Smtp__FromName: ${SMTP_FROM_NAME:-MekongNode Partner Network}
+      Smtp__PortalUrl: ${SMTP_PORTAL_URL:-http://localhost:3000/affiliate/login}
     ports:
       - "8080:8080"
     volumes:
@@ -62,7 +73,8 @@ services:
       context: .
       dockerfile: Dockerfile.frontend
       args:
-        NEXT_PUBLIC_API_BASE_URL: http://localhost:8080/api
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8080/api}
+        NEXT_PUBLIC_DEMO_MODE: ${NEXT_PUBLIC_DEMO_MODE:-true}
     environment:
       NODE_ENV: production
       BACKEND_API_BASE_URL: http://api:8080/api

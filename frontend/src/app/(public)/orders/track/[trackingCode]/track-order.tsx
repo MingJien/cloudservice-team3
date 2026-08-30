@@ -8,6 +8,7 @@ import { Container } from "@/components/layout/container";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ErrorState } from "@/components/ui/error-state";
+import { OrderTestimonialForm } from "@/components/public/order-testimonial-form";
 
 const labels: Record<OrderStatus, string> = {
   New: "Chờ tiếp nhận",
@@ -149,6 +150,8 @@ export function TrackOrder({ trackingCode }: { trackingCode: string }) {
                 <strong>Chưa phát sinh thanh toán tự động.</strong> Đây là yêu cầu dịch vụ đang chờ nhân viên tiếp nhận. VietQR và xác nhận thanh toán chỉ được hiển thị sau khi backend có Payment Transaction và webhook đối soát thật, tránh tạo trạng thái tài chính giả trên giao diện.
               </div>
             )}
+
+            {order.status === "Done" && <OrderTestimonialForm trackingCode={order.trackingCode} />}
 
             <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t border-line-200 pt-6 dark:border-white/10">
               <Link

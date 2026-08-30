@@ -28,7 +28,8 @@ public sealed class JwtTokenService(IOptions<JwtOptions> options) : ITokenServic
             new(JwtRegisteredClaimNames.Jti, jwtId),
             new(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new(ClaimTypes.Name, user.UserName),
-            new(ClaimTypes.Role, user.Role.Name)
+            new(ClaimTypes.Role, user.Role.Name),
+            new("must_change_password", user.MustChangePassword ? "true" : "false")
         };
         var credentials = new SigningCredentials(
             new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.Secret)),

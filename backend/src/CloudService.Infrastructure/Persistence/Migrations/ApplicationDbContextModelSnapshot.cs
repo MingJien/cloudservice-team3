@@ -35,6 +35,9 @@ namespace CloudService.Infrastructure.Persistence.MigrationProbe
                         .HasColumnType("datetime2(0)")
                         .HasDefaultValueSql("SYSUTCDATETIME()");
 
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("datetime2(0)");
+
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -49,6 +52,11 @@ namespace CloudService.Infrastructure.Persistence.MigrationProbe
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
                     b.Property<string>("Note")
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
@@ -57,11 +65,21 @@ namespace CloudService.Infrastructure.Persistence.MigrationProbe
                         .IsRequired()
                         .HasColumnType("varchar(20)");
 
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasColumnType("varchar(20)")
                         .HasDefaultValue("New");
+
+                    b.Property<string>("TrackingCode")
+                        .IsRequired()
+                        .HasColumnType("varchar(40)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2(0)");
@@ -72,6 +90,25 @@ namespace CloudService.Infrastructure.Persistence.MigrationProbe
 
                     b.HasKey("Id")
                         .HasName("PK_AffiliateApplications");
+
+                    b.HasIndex("Email")
+                        .IsUnique()
+                        .HasDatabaseName("UQ_AffiliateApplications_Email")
+                        .HasFilter("[IsDeleted] = 0");
+
+                    b.HasIndex("Phone")
+                        .IsUnique()
+                        .HasDatabaseName("UQ_AffiliateApplications_Phone")
+                        .HasFilter("[IsDeleted] = 0");
+
+                    b.HasIndex("TrackingCode")
+                        .IsUnique()
+                        .HasDatabaseName("UX_AffiliateApplications_TrackingCode");
+
+                    b.HasIndex("WebsiteOrChannel")
+                        .IsUnique()
+                        .HasDatabaseName("UQ_AffiliateApplications_WebsiteOrChannel")
+                        .HasFilter("[WebsiteOrChannel] IS NOT NULL AND [IsDeleted] = 0");
 
                     b.HasIndex("Status", "CreatedAt")
                         .IsDescending(false, true)
@@ -96,6 +133,9 @@ namespace CloudService.Infrastructure.Persistence.MigrationProbe
                         .HasColumnType("varchar(50)");
 
                     b.Property<long>("AffiliatePartnerId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("AffiliatePayoutId")
                         .HasColumnType("bigint");
 
                     b.Property<decimal>("CommissionAmount")
@@ -136,6 +176,9 @@ namespace CloudService.Infrastructure.Persistence.MigrationProbe
                     b.HasKey("Id")
                         .HasName("PK_AffiliateAttributions");
 
+                    b.HasIndex("AffiliatePayoutId")
+                        .HasDatabaseName("IX_AffiliateAttributions_PayoutId");
+
                     b.HasIndex("OrderRequestId")
                         .IsUnique()
                         .HasDatabaseName("UQ_AffiliateAttributions_OrderRequestId");
@@ -162,6 +205,9 @@ namespace CloudService.Infrastructure.Persistence.MigrationProbe
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
+                    b.Property<int?>("AppUserId")
+                        .HasColumnType("int");
+
                     b.Property<long>("ApplicationId")
                         .HasColumnType("bigint");
 
@@ -183,6 +229,16 @@ namespace CloudService.Infrastructure.Persistence.MigrationProbe
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
 
+                    b.Property<int>("ImportedClickCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<int>("ImportedConversionCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
@@ -194,11 +250,25 @@ namespace CloudService.Infrastructure.Persistence.MigrationProbe
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
 
+                    b.Property<string>("Tier")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("varchar(20)")
+                        .HasDefaultValue("Newbie");
+
+                    b.Property<DateTime?>("TierEvaluatedAtUtc")
+                        .HasColumnType("datetime2(0)");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2(0)");
 
                     b.HasKey("Id")
                         .HasName("PK_AffiliatePartners");
+
+                    b.HasIndex("AppUserId")
+                        .IsUnique()
+                        .HasDatabaseName("UQ_AffiliatePartners_AppUserId")
+                        .HasFilter("[AppUserId] IS NOT NULL");
 
                     b.HasIndex("ApplicationId")
                         .IsUnique()
@@ -211,6 +281,98 @@ namespace CloudService.Infrastructure.Persistence.MigrationProbe
                     b.ToTable("AffiliatePartners", null, t =>
                         {
                             t.HasCheckConstraint("CK_AffiliatePartners_CommissionRate", "[CommissionRate] >= 0 AND [CommissionRate] <= 100");
+
+                            t.HasCheckConstraint("CK_AffiliatePartners_ImportedCounters", "[ImportedClickCount] >= 0 AND [ImportedConversionCount] >= 0 AND [ImportedConversionCount] <= [ImportedClickCount]");
+
+                            t.HasCheckConstraint("CK_AffiliatePartners_Tier", "[Tier] IN ('Newbie', 'Bronze', 'Silver', 'Gold')");
+                        });
+                });
+
+            modelBuilder.Entity("CloudService.Domain.Entities.AffiliatePayout", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("AffiliatePartnerId")
+                        .HasColumnType("bigint");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("BankAccountName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("BankAccountNumber")
+                        .IsRequired()
+                        .HasColumnType("varchar(32)");
+
+                    b.Property<string>("BankName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(0)")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<DateTime?>("PaidAtUtc")
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<string>("RequestCode")
+                        .IsRequired()
+                        .HasColumnType("varchar(30)");
+
+                    b.Property<DateTime>("RequestedAtUtc")
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<string>("ReviewNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("ReviewedAtUtc")
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<int?>("ReviewedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("varchar(20)")
+                        .HasDefaultValue("Requested");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2(0)");
+
+                    b.HasKey("Id")
+                        .HasName("PK_AffiliatePayouts");
+
+                    b.HasIndex("RequestCode")
+                        .IsUnique()
+                        .HasDatabaseName("UQ_AffiliatePayouts_RequestCode");
+
+                    b.HasIndex("AffiliatePartnerId", "Status", "RequestedAtUtc")
+                        .IsDescending(false, false, true)
+                        .HasDatabaseName("IX_AffiliatePayouts_Partner_Status_RequestedAt");
+
+                    b.ToTable("AffiliatePayouts", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_AffiliatePayouts_Amount", "[Amount] >= 500000");
+
+                            t.HasCheckConstraint("CK_AffiliatePayouts_Status", "[Status] IN ('Requested', 'Processing', 'Paid', 'Rejected')");
                         });
                 });
 
@@ -351,6 +513,11 @@ namespace CloudService.Infrastructure.Persistence.MigrationProbe
                     b.Property<DateTime?>("LastLoginAt")
                         .HasColumnType("datetime2(0)");
 
+                    b.Property<bool>("MustChangePassword")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasMaxLength(500)
@@ -472,11 +639,17 @@ namespace CloudService.Infrastructure.Persistence.MigrationProbe
                         .HasMaxLength(3000)
                         .HasColumnType("nvarchar(3000)");
 
+                    b.Property<long?>("ParentContactRequestId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("Phone")
                         .HasColumnType("varchar(20)");
 
                     b.Property<DateTime?>("RepliedAt")
                         .HasColumnType("datetime2(0)");
+
+                    b.Property<string>("RepliedByRole")
+                        .HasColumnType("varchar(20)");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -491,7 +664,7 @@ namespace CloudService.Infrastructure.Persistence.MigrationProbe
 
                     b.Property<string>("TrackingCode")
                         .IsRequired()
-                        .HasColumnType("char(32)");
+                        .HasColumnType("varchar(32)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2(0)");
@@ -507,8 +680,13 @@ namespace CloudService.Infrastructure.Persistence.MigrationProbe
                         .IsDescending(false, true)
                         .HasDatabaseName("IX_ContactRequests_Status_CreatedAt");
 
+                    b.HasIndex("ParentContactRequestId", "Status", "CreatedAt")
+                        .HasDatabaseName("IX_ContactRequests_Parent_Status_CreatedAt");
+
                     b.ToTable("ContactRequests", null, t =>
                         {
+                            t.HasCheckConstraint("CK_ContactRequests_RepliedByRole", "[RepliedByRole] IS NULL OR [RepliedByRole] IN ('Admin', 'Editor')");
+
                             t.HasCheckConstraint("CK_ContactRequests_Status", "[Status] IN ('New', 'Read', 'Replied')");
                         });
                 });
@@ -636,6 +814,74 @@ namespace CloudService.Infrastructure.Persistence.MigrationProbe
                         .HasDatabaseName("UQ_NewsCategories_Slug");
 
                     b.ToTable("NewsCategories", (string)null);
+                });
+
+            modelBuilder.Entity("CloudService.Domain.Entities.OrderExportJob", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("CompletedAtUtc")
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<byte[]>("Content")
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<string>("ContentType")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTime>("ExpiresAtUtc")
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<string>("FileName")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTime>("RequestedAtUtc")
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<int>("RequestedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("Search")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime?>("StartedAtUtc")
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("StatusFilter")
+                        .HasColumnType("varchar(20)");
+
+                    b.HasKey("Id")
+                        .HasName("PK_OrderExportJobs");
+
+                    b.HasIndex("RequestedByUserId", "RequestedAtUtc")
+                        .HasDatabaseName("IX_OrderExportJobs_User_RequestedAt");
+
+                    b.HasIndex("Status", "RequestedAtUtc")
+                        .HasDatabaseName("IX_OrderExportJobs_Status_RequestedAt");
+
+                    b.ToTable("OrderExportJobs", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_OrderExportJobs_Status", "[Status] IN ('Pending', 'Processing', 'Completed', 'Failed', 'Expired')");
+                        });
                 });
 
             modelBuilder.Entity("CloudService.Domain.Entities.OrderRequest", b =>
@@ -1052,6 +1298,16 @@ namespace CloudService.Infrastructure.Persistence.MigrationProbe
                         .HasColumnType("bit")
                         .HasDefaultValue(true);
 
+                    b.Property<decimal?>("MaxDiscountAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("MinOrderValue")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(150)
@@ -1091,6 +1347,10 @@ namespace CloudService.Infrastructure.Persistence.MigrationProbe
                             t.HasCheckConstraint("CK_Promotions_DiscountType", "[DiscountType] IN ('Percentage', 'FixedAmount')");
 
                             t.HasCheckConstraint("CK_Promotions_DiscountValue", "[DiscountValue] > 0");
+
+                            t.HasCheckConstraint("CK_Promotions_MaxDiscount", "[MaxDiscountAmount] IS NULL OR [MaxDiscountAmount] > 0");
+
+                            t.HasCheckConstraint("CK_Promotions_MinOrder", "[MinOrderValue] >= 0");
 
                             t.HasCheckConstraint("CK_Promotions_Percentage", "[DiscountType] <> 'Percentage' OR [DiscountValue] <= 100");
 
@@ -1141,6 +1401,12 @@ namespace CloudService.Infrastructure.Persistence.MigrationProbe
 
                     b.Property<DateTime?>("RevokedAt")
                         .HasColumnType("datetime2(0)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.Property<string>("TokenHash")
                         .IsRequired()
@@ -1210,6 +1476,13 @@ namespace CloudService.Infrastructure.Persistence.MigrationProbe
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Quản lý nội dung và xử lý yêu cầu",
                             Name = "Editor"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Đối tác tiếp thị liên kết, chỉ truy cập dữ liệu của chính mình",
+                            Name = "Affiliate"
                         });
                 });
 
@@ -1618,9 +1891,29 @@ namespace CloudService.Infrastructure.Persistence.MigrationProbe
                         .HasColumnType("bit")
                         .HasDefaultValue(true);
 
+                    b.Property<bool>("IsFeaturedCustomer")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsVerifiedOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
                     b.Property<string>("LogoUrl")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("ModerationStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("Pending");
+
+                    b.Property<long?>("OrderRequestId")
+                        .HasColumnType("bigint");
 
                     b.Property<string>("Position")
                         .HasMaxLength(100)
@@ -1637,9 +1930,16 @@ namespace CloudService.Infrastructure.Persistence.MigrationProbe
                     b.HasKey("Id")
                         .HasName("PK_Testimonials");
 
+                    b.HasIndex("OrderRequestId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Testimonials_OrderRequestId")
+                        .HasFilter("[OrderRequestId] IS NOT NULL");
+
                     b.ToTable("Testimonials", null, t =>
                         {
                             t.HasCheckConstraint("CK_Testimonials_DisplayOrder", "[DisplayOrder] >= 0");
+
+                            t.HasCheckConstraint("CK_Testimonials_ModerationStatus", "[ModerationStatus] IN ('Pending', 'Published', 'Hidden')");
 
                             t.HasCheckConstraint("CK_Testimonials_Rating", "[Rating] BETWEEN 1 AND 5");
                         });
@@ -1654,6 +1954,12 @@ namespace CloudService.Infrastructure.Persistence.MigrationProbe
                         .IsRequired()
                         .HasConstraintName("FK_AffiliateAttributions_AffiliatePartners");
 
+                    b.HasOne("CloudService.Domain.Entities.AffiliatePayout", "AffiliatePayout")
+                        .WithMany("Attributions")
+                        .HasForeignKey("AffiliatePayoutId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .HasConstraintName("FK_AffiliateAttributions_AffiliatePayouts");
+
                     b.HasOne("CloudService.Domain.Entities.OrderRequest", "OrderRequest")
                         .WithOne("AffiliateAttribution")
                         .HasForeignKey("CloudService.Domain.Entities.AffiliateAttribution", "OrderRequestId")
@@ -1663,11 +1969,19 @@ namespace CloudService.Infrastructure.Persistence.MigrationProbe
 
                     b.Navigation("AffiliatePartner");
 
+                    b.Navigation("AffiliatePayout");
+
                     b.Navigation("OrderRequest");
                 });
 
             modelBuilder.Entity("CloudService.Domain.Entities.AffiliatePartner", b =>
                 {
+                    b.HasOne("CloudService.Domain.Entities.AppUser", "AppUser")
+                        .WithOne()
+                        .HasForeignKey("CloudService.Domain.Entities.AffiliatePartner", "AppUserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .HasConstraintName("FK_AffiliatePartners_AppUsers");
+
                     b.HasOne("CloudService.Domain.Entities.AffiliateApplication", "Application")
                         .WithOne("Partner")
                         .HasForeignKey("CloudService.Domain.Entities.AffiliatePartner", "ApplicationId")
@@ -1675,7 +1989,21 @@ namespace CloudService.Infrastructure.Persistence.MigrationProbe
                         .IsRequired()
                         .HasConstraintName("FK_AffiliatePartners_AffiliateApplications");
 
+                    b.Navigation("AppUser");
+
                     b.Navigation("Application");
+                });
+
+            modelBuilder.Entity("CloudService.Domain.Entities.AffiliatePayout", b =>
+                {
+                    b.HasOne("CloudService.Domain.Entities.AffiliatePartner", "AffiliatePartner")
+                        .WithMany("Payouts")
+                        .HasForeignKey("AffiliatePartnerId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired()
+                        .HasConstraintName("FK_AffiliatePayouts_AffiliatePartners");
+
+                    b.Navigation("AffiliatePartner");
                 });
 
             modelBuilder.Entity("CloudService.Domain.Entities.AffiliateReferral", b =>
@@ -1721,6 +2049,17 @@ namespace CloudService.Infrastructure.Persistence.MigrationProbe
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("CloudService.Domain.Entities.ContactRequest", b =>
+                {
+                    b.HasOne("CloudService.Domain.Entities.ContactRequest", "Parent")
+                        .WithMany("FollowUps")
+                        .HasForeignKey("ParentContactRequestId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("FK_ContactRequests_Parent");
+
+                    b.Navigation("Parent");
+                });
+
             modelBuilder.Entity("CloudService.Domain.Entities.NewsArticle", b =>
                 {
                     b.HasOne("CloudService.Domain.Entities.NewsCategory", "Category")
@@ -1731,6 +2070,16 @@ namespace CloudService.Infrastructure.Persistence.MigrationProbe
                         .HasConstraintName("FK_NewsArticles_NewsCategories");
 
                     b.Navigation("Category");
+                });
+
+            modelBuilder.Entity("CloudService.Domain.Entities.OrderExportJob", b =>
+                {
+                    b.HasOne("CloudService.Domain.Entities.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("RequestedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired()
+                        .HasConstraintName("FK_OrderExportJobs_AppUsers");
                 });
 
             modelBuilder.Entity("CloudService.Domain.Entities.OrderRequest", b =>
@@ -1811,6 +2160,16 @@ namespace CloudService.Infrastructure.Persistence.MigrationProbe
                     b.Navigation("Category");
                 });
 
+            modelBuilder.Entity("CloudService.Domain.Entities.Testimonial", b =>
+                {
+                    b.HasOne("CloudService.Domain.Entities.OrderRequest", "OrderRequest")
+                        .WithOne()
+                        .HasForeignKey("CloudService.Domain.Entities.Testimonial", "OrderRequestId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.Navigation("OrderRequest");
+                });
+
             modelBuilder.Entity("CloudService.Domain.Entities.AffiliateApplication", b =>
                 {
                     b.Navigation("Partner");
@@ -1820,7 +2179,14 @@ namespace CloudService.Infrastructure.Persistence.MigrationProbe
                 {
                     b.Navigation("Attributions");
 
+                    b.Navigation("Payouts");
+
                     b.Navigation("Referrals");
+                });
+
+            modelBuilder.Entity("CloudService.Domain.Entities.AffiliatePayout", b =>
+                {
+                    b.Navigation("Attributions");
                 });
 
             modelBuilder.Entity("CloudService.Domain.Entities.AppUser", b =>
@@ -1828,6 +2194,11 @@ namespace CloudService.Infrastructure.Persistence.MigrationProbe
                     b.Navigation("AuditLogs");
 
                     b.Navigation("RefreshTokens");
+                });
+
+            modelBuilder.Entity("CloudService.Domain.Entities.ContactRequest", b =>
+                {
+                    b.Navigation("FollowUps");
                 });
 
             modelBuilder.Entity("CloudService.Domain.Entities.NewsCategory", b =>

@@ -7,8 +7,20 @@ namespace CloudService.Application.Features.Pricing;
 public sealed class PricingService(
     IPlanCatalogReadStore catalog,
     IEnumerable<IPromotionDiscountStrategy> discountStrategies,
+    IQuoteTokenService quoteTokenService,
     TimeProvider timeProvider) : IPricingService
 {
+    // Kept for small unit tests and consumers that construct the policy
+    // directly. The Web API always uses the signed implementation registered
+    // by Infrastructure; this compatibility path never runs in production.
+    public PricingService(
+        IPlanCatalogReadStore catalog,
+        IEnumerable<IPromotionDiscountStrategy> discountStrategies,
+        TimeProvider timeProvider)
+        : this(catalog, discountStrategies, CompatibilityQuoteTokenService.Instance, timeProvider)
+    {
+    }
+
     private readonly IReadOnlyDictionary<Domain.Enums.DiscountType, IPromotionDiscountStrategy> _discountStrategies =
         discountStrategies.ToDictionary(strategy => strategy.DiscountType);
 
@@ -34,10 +46,10 @@ public sealed class PricingService(
         {
             var normalizedCode = request.PromotionCode.Trim().ToUpperInvariant();
             var promotion = await catalog.FindPromotionAsync(normalizedCode, cancellationToken);
-            ValidatePromotion(promotion, plan.Id, utcNow);
+            ValidatePromotion(promotion, plan.Id, utcNow, effectivePlanPrice);
 
             var strategy = _discountStrategies[promotion!.DiscountType];
-            promotionDiscount = strategy.Calculate(effectivePlanPrice, promotion.DiscountValue);
+            promotionDiscount = strategy.Calculate(effectivePlanPrice, promotion.DiscountValue, promotion.MaxDiscountAmount);
             appliedPromotion = new AppliedPromotion(
                 promotion.Code,
                 promotion.Name,
@@ -47,7 +59,7 @@ public sealed class PricingService(
 
         var totalDiscount = planDiscount + promotionDiscount;
         var totalPrice = Math.Max(0m, effectivePlanPrice - promotionDiscount);
-        return new PricingQuoteResponse(
+        var quote = new PricingQuoteResponse(
             plan.Id,
             plan.Name,
             plan.Slug,
@@ -62,12 +74,13 @@ public sealed class PricingService(
             price.Currency,
             appliedPromotion,
             utcNow);
+        return quote with { QuoteToken = quoteTokenService.Create(quote) };
     }
 
     public Task<bool> TryReservePromotionUseAsync(string normalizedCode, int servicePlanId, DateTime utcNow, CancellationToken cancellationToken) =>
         catalog.TryReservePromotionUseAsync(normalizedCode.Trim().ToUpperInvariant(), servicePlanId, utcNow, cancellationToken);
 
-    private static void ValidatePromotion(PromotionCatalogItem? promotion, int servicePlanId, DateTime utcNow)
+    private static void ValidatePromotion(PromotionCatalogItem? promotion, int servicePlanId, DateTime utcNow, decimal effectivePlanPrice)
     {
         var error = promotion switch
         {
@@ -76,6 +89,7 @@ public sealed class PricingService(
             _ when promotion.StartAt > utcNow || promotion.EndAt <= utcNow => "Mã khuyến mãi không nằm trong thời gian áp dụng.",
             _ when promotion.UsageLimit is not null && promotion.UsedCount >= promotion.UsageLimit => "Mã khuyến mãi đã hết lượt sử dụng.",
             _ when promotion.ServicePlanIds.Count > 0 && !promotion.ServicePlanIds.Contains(servicePlanId) => "Mã khuyến mãi không áp dụng cho gói đã chọn.",
+            _ when effectivePlanPrice < promotion.MinOrderValue => $"Đơn hàng chưa đạt giá trị tối thiểu {promotion.MinOrderValue:N0} để sử dụng mã này.",
             _ => null
         };
 
@@ -83,5 +97,12 @@ public sealed class PricingService(
         {
             throw new RequestValidationException("PromotionCode", error);
         }
+    }
+
+    private sealed class CompatibilityQuoteTokenService : IQuoteTokenService
+    {
+        public static readonly CompatibilityQuoteTokenService Instance = new();
+        public string Create(PricingQuoteResponse quote) => string.Empty;
+        public bool IsValid(string token, PricingQuoteRequest request, PricingQuoteResponse currentQuote, DateTime utcNow) => true;
     }
 }

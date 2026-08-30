@@ -1,0 +1,26 @@
+# Demo-only overlay. The production base keeps seeding disabled; this file is
+# added only by scripts/start-demo-deploy.ps1 so a fresh local demo database
+# contains the documented admin/editor/affiliate journeys without changing the
+# production safety default.
+services:
+  api:
+    environment:
+      Seed__DemoUsers__Enabled: "true"
+      # The demo account is intentionally deterministic for a classroom handoff.
+      # A real VPS must use docker-compose.prod.yml without this overlay.
+      Seed__DemoUsers__ResetPasswordOnStartup: "true"
+      Seed__DemoUsers__Admin__UserName: ${SEED_ADMIN_USERNAME:-admin}
+      Seed__DemoUsers__Admin__FullName: ${SEED_ADMIN_FULLNAME:-CloudService Administrator}
+      Seed__DemoUsers__Admin__Email: ${SEED_ADMIN_EMAIL:-admin@cloudservice.local}
+      Seed__DemoUsers__Admin__Password: ${SEED_ADMIN_PASSWORD:-ad123}
+      Seed__DemoUsers__Editor__UserName: ${SEED_EDITOR_USERNAME:-editor}
+      Seed__DemoUsers__Editor__FullName: ${SEED_EDITOR_FULLNAME:-CloudService Editor}
+      Seed__DemoUsers__Editor__Email: ${SEED_EDITOR_EMAIL:-editor@cloudservice.local}
+      Seed__DemoUsers__Editor__Password: ${SEED_EDITOR_PASSWORD:-ed123}
+      # One deterministic Silver partner keeps every dashboard metric, payout
+      # and time-series trace coherent for a live classroom demonstration.
+      Seed__DemoUsers__AffiliateSilver__UserName: ${SEED_AFFILIATE_SILVER_USERNAME:-affb}
+      Seed__DemoUsers__AffiliateSilver__FullName: ${SEED_AFFILIATE_SILVER_FULLNAME:-Lê Bảo Affiliate Bạc}
+      Seed__DemoUsers__AffiliateSilver__Email: ${SEED_AFFILIATE_SILVER_EMAIL:-affb@cloudservice.local}
+      Seed__DemoUsers__AffiliateSilver__Password: ${SEED_AFFILIATE_SILVER_PASSWORD:-affb123}
+      Seed__DemoContent__Enabled: "true"

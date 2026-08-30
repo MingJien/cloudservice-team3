@@ -8,6 +8,7 @@
 secrets.json
 appsettings.Local.json
 appsettings.*.Local.json
+appsettings.Development.json
 appsettings.Development.local.json
 
 *.pfx
@@ -90,3 +91,4 @@ temp/
 uploads/
 generated/
 exports/
+backend/src/CloudService.WebApi/wwwroot/avatars/

@@ -3,8 +3,11 @@ using CloudService.Application.Common.Models;
 using CloudService.Application.Features.Content.Interfaces;
 using CloudService.Application.Features.Content.Models;
 using CloudService.Domain.Constants;
+using CloudService.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc;
 
 namespace CloudService.WebApi.Controllers;
 
@@ -102,39 +105,20 @@ public sealed class ContentController(IContentService service, IWebHostEnvironme
 
     [AllowAnonymous]
     [HttpGet("testimonials")]
-    public Task<PagedResult<TestimonialItem>> GetTestimonials([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 20, CancellationToken cancellationToken = default) => service.GetTestimonialsAsync(pageNumber, pageSize, false, cancellationToken);
+    public Task<PagedResult<TestimonialItem>> GetTestimonials([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 20, CancellationToken cancellationToken = default) => service.GetTestimonialsAsync(pageNumber, pageSize, false, true, cancellationToken);
 
     [Authorize(Roles = RoleNames.Admin)]
     [HttpGet("admin/testimonials")]
-    public Task<PagedResult<TestimonialItem>> GetAdminTestimonials([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 20, CancellationToken cancellationToken = default) => service.GetTestimonialsAsync(pageNumber, pageSize, true, cancellationToken);
+    public Task<PagedResult<TestimonialItem>> GetAdminTestimonials([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 20, CancellationToken cancellationToken = default) => service.GetTestimonialsAsync(pageNumber, pageSize, true, false, cancellationToken);
 
-    [Authorize(Roles = RoleNames.Admin)]
-    [HttpPost("testimonials")]
-    public async Task<ActionResult<TestimonialItem>> CreateTestimonial(TestimonialRequest request, CancellationToken cancellationToken)
+    [AllowAnonymous]
+    [EnableRateLimiting("testimonial-submit")]
+    [HttpPost("testimonials/submissions")]
+    [ProducesResponseType<TestimonialSubmissionResult>(StatusCodes.Status201Created)]
+    public async Task<ActionResult<TestimonialSubmissionResult>> SubmitTestimonial(SubmitTestimonialRequest request, CancellationToken cancellationToken)
     {
-        var item = await service.CreateTestimonialAsync(request, UserId(), ClientIp(), cancellationToken);
-        return StatusCode(StatusCodes.Status201Created, item);
-    }
-
-    [Authorize(Roles = RoleNames.Admin)]
-    [HttpPut("testimonials/{id:int}")]
-    public Task<TestimonialItem> UpdateTestimonial(int id, TestimonialRequest request, CancellationToken cancellationToken) => service.UpdateTestimonialAsync(id, request, UserId(), ClientIp(), cancellationToken);
-
-    [Authorize(Roles = RoleNames.Admin)]
-    [HttpDelete("testimonials/{id:int}")]
-    public async Task<IActionResult> DeleteTestimonial(int id, CancellationToken cancellationToken)
-    {
-        await service.DeactivateTestimonialAsync(id, UserId(), ClientIp(), cancellationToken);
-        return NoContent();
-    }
-
-    [Authorize(Roles = RoleNames.Admin)]
-    [HttpDelete("testimonials/{id:int}/hard")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    public async Task<IActionResult> HardDeleteTestimonial(int id, CancellationToken cancellationToken)
-    {
-        await service.PermanentlyDeleteTestimonialAsync(id, UserId(), ClientIp(), cancellationToken);
-        return NoContent();
+        var result = await service.SubmitTestimonialAsync(request, cancellationToken);
+        return StatusCode(StatusCodes.Status201Created, result);
     }
 
     [Authorize(Roles = RoleNames.Admin)]
@@ -143,6 +127,7 @@ public sealed class ContentController(IContentService service, IWebHostEnvironme
         service.SetTestimonialStatusAsync(id, request.IsActive, UserId(), ClientIp(), cancellationToken);
 
     [AllowAnonymous]
+    [EnableRateLimiting("contact-submit")]
     [HttpPost("contact-requests")]
     public async Task<ActionResult<ContactRequestItem>> CreateContact(CreateContactRequest request, CancellationToken cancellationToken)
     {
@@ -154,6 +139,11 @@ public sealed class ContentController(IContentService service, IWebHostEnvironme
     [HttpGet("contact-requests/tracking/{trackingCode}")]
     public Task<PublicContactStatusItem> GetContactStatus(string trackingCode, CancellationToken cancellationToken) =>
         service.GetContactStatusAsync(trackingCode, cancellationToken);
+
+    [AllowAnonymous]
+    [HttpGet("public/qna")]
+    public Task<PagedResult<PublicQnAItem>> GetPublicQnAs([FromQuery] PublicQnAQuery query, CancellationToken cancellationToken) =>
+        service.GetPublicQnAsAsync(query, cancellationToken);
 
     [Authorize(Roles = RoleNames.AdminOrEditor)]
     [HttpGet("contact-requests")]
@@ -171,7 +161,10 @@ public sealed class ContentController(IContentService service, IWebHostEnvironme
     [HttpPatch("contact-requests/{id:long}/reply")]
     public async Task<IActionResult> ReplyToContact(long id, ReplyContactRequest request, CancellationToken cancellationToken)
     {
-        await service.ReplyToContactAsync(id, request, UserId(), ClientIp(), cancellationToken);
+        var responderRole = User.IsInRole(RoleNames.Admin)
+            ? ContactResponderRole.Admin
+            : ContactResponderRole.Editor;
+        await service.ReplyToContactAsync(id, request, responderRole, UserId(), ClientIp(), cancellationToken);
         return NoContent();
     }
 

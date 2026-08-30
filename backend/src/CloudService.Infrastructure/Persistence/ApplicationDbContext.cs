@@ -21,7 +21,9 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
     public DbSet<AffiliatePartner> AffiliatePartners => Set<AffiliatePartner>();
     public DbSet<AffiliateReferral> AffiliateReferrals => Set<AffiliateReferral>();
     public DbSet<AffiliateAttribution> AffiliateAttributions => Set<AffiliateAttribution>();
+    public DbSet<AffiliatePayout> AffiliatePayouts => Set<AffiliatePayout>();
     public DbSet<ApiIdempotencyRecord> ApiIdempotencyRecords => Set<ApiIdempotencyRecord>();
+    public DbSet<OrderExportJob> OrderExportJobs => Set<OrderExportJob>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
     public DbSet<NewsCategory> NewsCategories => Set<NewsCategory>();
     public DbSet<NewsArticle> NewsArticles => Set<NewsArticle>();

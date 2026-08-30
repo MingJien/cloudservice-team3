@@ -7,7 +7,7 @@ public sealed class FixedAmountDiscountStrategy : IPromotionDiscountStrategy
 {
     public DiscountType DiscountType => DiscountType.FixedAmount;
 
-    public decimal Calculate(decimal amount, decimal discountValue)
+    public decimal Calculate(decimal amount, decimal discountValue, decimal? maxDiscountAmount)
     {
         return Math.Min(amount, decimal.Round(discountValue, 2, MidpointRounding.AwayFromZero));
     }

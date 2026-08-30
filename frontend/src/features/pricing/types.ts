@@ -21,6 +21,8 @@ export interface PricingQuoteResponse {
   currency: string;
   promotion: { code: string; name: string; discountType: string; discountValue: number } | null;
   calculatedAtUtc: string;
+  /** Short-lived server signature required when an order is submitted. */
+  quoteToken: string;
 }
 
 export interface ComparedPlanPrice {

@@ -27,7 +27,9 @@ public sealed class AffiliateAttributionConfiguration : IEntityTypeConfiguration
         builder.Property(item => item.PaidAtUtc).HasColumnType("datetime2(0)");
         builder.HasIndex(item => item.OrderRequestId).IsUnique().HasDatabaseName("UQ_AffiliateAttributions_OrderRequestId");
         builder.HasIndex(item => new { item.AffiliatePartnerId, item.Status, item.CreatedAt }).IsDescending(false, false, true).HasDatabaseName("IX_AffiliateAttributions_Partner_Status_CreatedAt");
+        builder.HasIndex(item => item.AffiliatePayoutId).HasDatabaseName("IX_AffiliateAttributions_PayoutId");
         builder.HasOne(item => item.AffiliatePartner).WithMany(item => item.Attributions).HasForeignKey(item => item.AffiliatePartnerId).OnDelete(DeleteBehavior.NoAction).HasConstraintName("FK_AffiliateAttributions_AffiliatePartners");
         builder.HasOne(item => item.OrderRequest).WithOne(item => item.AffiliateAttribution).HasForeignKey<AffiliateAttribution>(item => item.OrderRequestId).OnDelete(DeleteBehavior.NoAction).HasConstraintName("FK_AffiliateAttributions_OrderRequests");
+        builder.HasOne(item => item.AffiliatePayout).WithMany(item => item.Attributions).HasForeignKey(item => item.AffiliatePayoutId).OnDelete(DeleteBehavior.NoAction).HasConstraintName("FK_AffiliateAttributions_AffiliatePayouts");
     }
 }

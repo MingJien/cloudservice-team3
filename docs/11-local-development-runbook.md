@@ -41,7 +41,7 @@ code "D:\ProJect\HK7_y25-26\pt PM HĐT\BT end\CloudService\frontend"
 3. Chọn profile HTTP của WebApi và bấm `F5`.
 4. Kiểm tra API tại `http://localhost:8080/health`, kiểm tra cả SQL Server tại `http://localhost:8080/health/ready`, hoặc mở Swagger tại `http://localhost:8080/swagger`.
 
-Backend local phải dùng SQL Server ở `localhost,1433`, không dùng hostname `db`. Nếu project chưa có user-secrets, cấu hình secret theo `README.md` và giữ `Database__ApplyMigrationsOnStartup=false` sau khi database đã có schema.
+Backend local phải dùng SQL Server ở `localhost,14330` (Compose map host `14330` → container `1433`), không dùng hostname `db`. Nếu project chưa có user-secrets, cấu hình secret theo `README.md` và giữ `Database__ApplyMigrationsOnStartup=false` sau khi database đã có schema.
 
 ## 3. Chạy frontend bằng Visual Studio Code màu xanh
 

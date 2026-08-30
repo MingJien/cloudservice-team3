@@ -76,7 +76,15 @@ public sealed class AuthService(
         storedToken.Revoke(utcNow, newRefreshHash);
         authStore.AddRefreshToken(new RefreshToken(storedToken.UserId, newRefreshHash, accessToken.JwtId, refreshExpiresAt, utcNow, ipAddress));
         authStore.AddAuditLog(new AuditLog("Auth.TokenRefreshed", storedToken.UserId, nameof(AppUser), storedToken.UserId.ToString(), ipAddress: ipAddress));
-        await authStore.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await authStore.SaveChangesAsync(cancellationToken);
+        }
+        catch (RefreshTokenRotationException)
+        {
+            // A competing request already consumed this one-time token.
+            throw new InvalidRefreshTokenException();
+        }
 
         return CreateResponse(storedToken.User, accessToken, newRawRefreshToken, refreshExpiresAt);
     }
@@ -111,6 +119,20 @@ public sealed class AuthService(
         await authStore.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task LogoutAsync(int userId, string refreshToken, string? ipAddress, CancellationToken cancellationToken)
+    {
+        if (userId <= 0 || string.IsNullOrWhiteSpace(refreshToken)) return;
+
+        var tokenHash = tokenService.HashRefreshToken(refreshToken);
+        var storedToken = await authStore.FindRefreshTokenAsync(tokenHash, cancellationToken);
+        if (storedToken is null || storedToken.UserId != userId) return;
+
+        var utcNow = timeProvider.GetUtcNow().UtcDateTime;
+        storedToken.Revoke(utcNow);
+        authStore.AddAuditLog(new AuditLog("Auth.Logout", userId, nameof(AppUser), userId.ToString(), ipAddress: ipAddress));
+        await authStore.SaveChangesAsync(cancellationToken);
+    }
+
     private AuthResponse IssueTokens(AppUser user, DateTime utcNow, string? ipAddress)
     {
         var accessToken = tokenService.CreateAccessToken(user, utcNow);
@@ -128,6 +150,6 @@ public sealed class AuthService(
             accessToken.ExpiresAt,
             refreshToken,
             refreshExpiresAt,
-            new AuthenticatedUser(user.Id, user.UserName, user.FullName, user.Email, user.Role.Name, user.AvatarUrl));
+            new AuthenticatedUser(user.Id, user.UserName, user.FullName, user.Email, user.Role.Name, user.AvatarUrl, user.MustChangePassword));
     }
 }

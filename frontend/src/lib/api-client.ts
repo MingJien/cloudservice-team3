@@ -33,6 +33,9 @@ function apiBaseUrl(): string {
 export function apiAssetUrl(path: string | null | undefined): string | null {
   if (!path) return null;
   if (/^https?:\/\//i.test(path) || path.startsWith("data:")) return path;
+  // Seeded editorial artwork lives in Next.js public/. Runtime uploads still resolve
+  // against WebApi, so admin-provided /uploads/... links keep their existing contract.
+  if (path.startsWith("/images/") || path.startsWith("/brand/")) return path;
   const apiBase = apiBaseUrl();
   const origin = apiBase.endsWith("/api") ? apiBase.slice(0, -4) : apiBase;
   return `${origin}${path.startsWith("/") ? path : `/${path}`}`;

@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { login } from "@/features/auth/session-client";
 import Link from "next/link";
-import { Activity, ShieldCheck, ArrowRight } from "lucide-react";
+import { ShieldCheck, ArrowRight } from "lucide-react";
+import { BrandLockup } from "@/components/brand/logo";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -23,9 +24,18 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
     try {
-      await login(identifier.trim(), password);
-      const candidate = new URLSearchParams(window.location.search).get("returnUrl") ?? "/admin";
-      const returnUrl = candidate.startsWith("/admin") && !candidate.startsWith("//") ? candidate : "/admin";
+      const session = await login(identifier.trim(), password);
+      if (session.user.role === "Affiliate") {
+        router.replace("/affiliate-portal");
+        router.refresh();
+        return;
+      }
+      const fallback = session.user.role === "Editor" ? "/admin/order-requests" : "/admin";
+      const candidate = new URLSearchParams(window.location.search).get("returnUrl") ?? fallback;
+      const editorAllowed = ["/admin/order-requests", "/admin/affiliate-applications", "/admin/contact-requests", "/admin/news-categories", "/admin/news-articles", "/admin/change-password", "/admin/profile"]
+        .some((root) => candidate === root || candidate.startsWith(`${root}/`));
+      const isSafeAdminPath = candidate.startsWith("/admin") && !candidate.startsWith("//");
+      const returnUrl = isSafeAdminPath && (session.user.role === "Admin" || editorAllowed) ? candidate : fallback;
       router.replace(returnUrl);
       router.refresh();
     } catch (caught) {
@@ -47,12 +57,9 @@ export default function LoginPage() {
         <div className="absolute inset-0 bg-gradient-to-t from-ink-950 via-ink-950/20 to-transparent z-10" />
         <div className="absolute inset-0 bg-gradient-to-r from-ink-950/80 to-transparent z-10" />
 
-        <div className="relative z-20 flex items-center gap-2">
-          <Activity className="text-river-400" size={28} />
-          <p className="text-2xl font-black tracking-tighter text-white">
-            Mekong<span className="text-river-400">Node</span>
-          </p>
-        </div>
+        <Link href="/" className="relative z-20 w-fit" aria-label="MekongNode - Trang chủ">
+          <BrandLockup markClassName="h-10 w-10" nameClassName="text-2xl" tone="on-dark" />
+        </Link>
 
         <div className="relative z-20 flex-1 flex flex-col justify-center mb-12">
           <div>
@@ -90,11 +97,8 @@ export default function LoginPage() {
         </div>
 
         <div className="w-full max-w-[420px] relative z-10">
-          <div className="lg:hidden flex items-center gap-2 mb-12 justify-center">
-            <Activity className="text-river-600" size={32} />
-            <p className="text-3xl font-black tracking-tighter text-[#0f172a]">
-              Mekong<span className="text-river-600">Node</span>
-            </p>
+          <div className="lg:hidden mb-12 flex justify-center">
+            <BrandLockup markClassName="h-11 w-11" nameClassName="text-3xl" tone="on-light" />
           </div>
 
           <div className="bg-[#ffffff] border border-[#e2e8f0] rounded-3xl p-8 sm:p-10 shadow-[0_20px_60px_rgba(0,0,0,0.08)]">

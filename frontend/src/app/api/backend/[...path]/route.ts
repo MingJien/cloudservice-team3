@@ -4,7 +4,9 @@ import { applySessionCookies, callBackend, forwardBackendResponse, getValidAcces
 type RouteContext = { params: Promise<{ path: string[] }> };
 
 async function proxy(request: Request, context: RouteContext) {
-  if (!["GET", "HEAD"].includes(request.method) && !isSameOrigin(request)) {
+  // The proxy carries an authenticated session cookie, so even read-only
+  // requests must not be usable as a cross-site data oracle.
+  if (!isSameOrigin(request)) {
     return problemResponse(403, "Nguồn yêu cầu không hợp lệ.");
   }
 
@@ -18,6 +20,12 @@ async function proxy(request: Request, context: RouteContext) {
   headers.delete("cookie");
   headers.delete("origin");
   headers.delete("content-length");
+  // Nginx may add hop-by-hop headers (notably `Connection: upgrade`) while
+  // forwarding a normal HTTP request. Node's undici fetch rejects those
+  // headers; they also have no meaning on the server-to-server hop.
+  for (const header of ["connection", "upgrade", "keep-alive", "transfer-encoding", "te", "trailer", "proxy-authorization", "proxy-authenticate"]) {
+    headers.delete(header);
+  }
   headers.set("Authorization", `Bearer ${auth.accessToken}`);
   const body = ["GET", "HEAD"].includes(request.method) ? undefined : await request.arrayBuffer();
   const backendResponse = await callBackend(backendPath, { method: request.method, headers, body });

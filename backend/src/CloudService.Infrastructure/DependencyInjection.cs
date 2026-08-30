@@ -24,6 +24,7 @@ using CloudService.Application.Features.Recommendations.Rules;
 using CloudService.Application.Features.Services;
 using CloudService.Application.Features.Services.Interfaces;
 using CloudService.Infrastructure.Authentication;
+using CloudService.Infrastructure.BackgroundJobs;
 using CloudService.Infrastructure.Excel;
 using CloudService.Infrastructure.Persistence;
 using CloudService.Infrastructure.QRCode;
@@ -72,12 +73,19 @@ public static class DependencyInjection
             .Validate(options => !options.Enabled || (!string.IsNullOrWhiteSpace(options.BotToken) && !string.IsNullOrWhiteSpace(options.ChatId)),
                 "Telegram BotToken and ChatId are required when Telegram is enabled.")
             .ValidateOnStart();
+        services.AddOptions<SmtpOptions>()
+            .Bind(configuration.GetSection(SmtpOptions.SectionName))
+            .ValidateDataAnnotations()
+            .Validate(options => !options.Enabled || (!string.IsNullOrWhiteSpace(options.Host) && !string.IsNullOrWhiteSpace(options.UserName) && !string.IsNullOrWhiteSpace(options.Password)), "SMTP Host, UserName and Password are required when SMTP is enabled.")
+            .ValidateOnStart();
         services.AddHttpClient<TelegramNotificationSender>(client =>
         {
             client.BaseAddress = new Uri("https://api.telegram.org/");
             client.Timeout = TimeSpan.FromSeconds(10);
         }).AddStandardResilienceHandler();
         services.AddHostedService<OutboxProcessorBackgroundService>();
+        services.AddHostedService<AffiliateMaintenanceBackgroundService>();
+        services.AddHostedService<OrderExportBackgroundService>();
         services.AddOptions<JwtOptions>()
             .Bind(configuration.GetSection(JwtOptions.SectionName))
             .ValidateDataAnnotations()
@@ -101,12 +109,33 @@ public static class DependencyInjection
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.Secret)),
                     ClockSkew = TimeSpan.FromSeconds(30)
                 };
+                options.Events = new JwtBearerEvents
+                {
+                    OnTokenValidated = context =>
+                    {
+                        var principal = context.Principal;
+                        var jwtId = principal?.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Jti)?.Value
+                            ?? principal?.FindFirst("jti")?.Value;
+                        if (!string.IsNullOrWhiteSpace(jwtId) &&
+                            context.HttpContext.RequestServices
+                                .GetRequiredService<IAccessTokenRevocationStore>()
+                                .IsRevoked(jwtId, DateTime.UtcNow))
+                        {
+                            context.Fail("Access token đã bị thu hồi.");
+                        }
+
+                        return Task.CompletedTask;
+                    }
+                };
             });
         services.AddAuthorization();
 
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
         services.AddSingleton<ITokenService, JwtTokenService>();
+        services.AddSingleton<IQuoteTokenService, HmacQuoteTokenService>();
+        services.AddSingleton<IAffiliateProofService, HmacAffiliateProofService>();
+        services.AddSingleton<IAccessTokenRevocationStore, MemoryAccessTokenRevocationStore>();
         services.AddScoped<IAuthStore, AuthStore>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IBrandingRepository, BrandingRepository>();
@@ -130,10 +159,13 @@ public static class DependencyInjection
         services.AddScoped<IServiceCatalogService, ServiceCatalogService>();
         services.AddSingleton<IQrCodeGenerator, SvgQrCodeGenerator>();
         services.AddScoped<IOrderRepository, OrderRepository>();
+        services.AddScoped<IOrderExportJobRepository, OrderExportJobRepository>();
         services.AddScoped<IOrderRequestFactory, OrderRequestFactory>();
         services.AddSingleton<IOrderExportFormatter, OrderXlsxExportFormatter>();
         services.AddScoped<IAffiliateRepository, AffiliateRepository>();
         services.AddScoped<IAffiliateService, AffiliateService>();
+        services.AddScoped<IAffiliateCredentialNotifier, SmtpAffiliateCredentialNotifier>();
+        services.AddScoped<IAffiliatePortalService, AffiliatePortalService>();
         services.AddScoped<IContentRepository, ContentRepository>();
         services.AddScoped<IContentService, ContentService>();
         services.AddScoped<IDashboardRepository, DashboardRepository>();

@@ -15,8 +15,8 @@ import { BillingCycleBadge, billingCycleLabels } from "@/features/pricing/billin
 import type { BillingCycle } from "@/features/pricing/types";
 import { FormError, formatAmount, formatDate, nowLocalDateTime, priceWindow, toLocalDateTime, toUtc } from "./catalog-shared";
 
-type PriceForm = { planId: string; billingCycle: BillingCycle; originalPrice: string; discountPercent: string; currency: string; effectiveFrom: string; effectiveTo: string };
-function emptyPrice(): PriceForm { return { planId: "", billingCycle: "Monthly", originalPrice: "", discountPercent: "0", currency: "VND", effectiveFrom: nowLocalDateTime(), effectiveTo: "" }; }
+type PriceForm = { planId: string; billingCycle: BillingCycle; originalPrice: string; discountMode: "Percentage" | "FixedAmount"; discountValue: string; currency: string; effectiveFrom: string; effectiveTo: string };
+function emptyPrice(): PriceForm { return { planId: "", billingCycle: "Monthly", originalPrice: "", discountMode: "Percentage", discountValue: "0", currency: "VND", effectiveFrom: nowLocalDateTime(), effectiveTo: "" }; }
 
 export function PricesCrudView() {
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -43,7 +43,7 @@ export function PricesCrudView() {
   function edit(planId: number, price: Price) {
     setEditing({ planId, price });
     const discountPercent = price.salePrice == null || price.originalPrice === 0 ? 0 : ((price.originalPrice - price.salePrice) / price.originalPrice) * 100;
-    setForm({ planId: String(planId), billingCycle: price.billingCycle, originalPrice: String(price.originalPrice), discountPercent: String(Number(discountPercent.toFixed(2))), currency: price.currency, effectiveFrom: toLocalDateTime(price.effectiveFrom), effectiveTo: toLocalDateTime(price.effectiveTo) });
+    setForm({ planId: String(planId), billingCycle: price.billingCycle, originalPrice: String(price.originalPrice), discountMode: "Percentage", discountValue: String(Number(discountPercent.toFixed(2))), currency: price.currency, effectiveFrom: toLocalDateTime(price.effectiveFrom), effectiveTo: toLocalDateTime(price.effectiveTo) });
     setDisplayPrice(price.originalPrice ? formatAmount(price.originalPrice) : "");
   }
   function reset() { 
@@ -56,11 +56,15 @@ export function PricesCrudView() {
     event.preventDefault(); setBusy(true); setError("");
     try {
       const originalPrice = Number(form.originalPrice);
-      const discountPercent = Number(form.discountPercent || 0);
+      const discountValue = Number(form.discountValue || 0);
       if (!form.planId || !Number.isFinite(originalPrice) || originalPrice < 0) throw new Error("Vui lòng chọn gói và nhập giá gốc hợp lệ.");
-      if (!Number.isFinite(discountPercent) || discountPercent < 0 || discountPercent > 100) throw new Error("Mức giảm trực tiếp phải nằm trong khoảng 0-100%.");
+      if (!Number.isFinite(discountValue) || discountValue < 0) throw new Error("Mức giảm trực tiếp phải là số không âm.");
+      if (form.discountMode === "Percentage" && discountValue > 100) throw new Error("Mức giảm phần trăm phải nằm trong khoảng 0-100%.");
+      if (form.discountMode === "FixedAmount" && discountValue > originalPrice) throw new Error("Số tiền giảm không được lớn hơn giá gốc.");
       if (form.effectiveFrom && form.effectiveTo && new Date(form.effectiveTo) <= new Date(form.effectiveFrom)) throw new Error("Hiệu lực đến phải sau hiệu lực từ.");
-      const salePrice = discountPercent > 0 ? Math.round(originalPrice * (1 - discountPercent / 100)) : null;
+      const salePrice = discountValue > 0
+        ? Math.max(0, Math.round(form.discountMode === "Percentage" ? originalPrice * (1 - discountValue / 100) : originalPrice - discountValue))
+        : null;
       const payload = { billingCycle: form.billingCycle, originalPrice, salePrice, currency: form.currency.trim().toUpperCase(), effectiveFrom: toUtc(form.effectiveFrom), effectiveTo: toUtc(form.effectiveTo), rowVersion: editing?.price.rowVersion ?? null };
       if (editing) await updatePrice(editing.price.id, payload); else await createPrice(Number(form.planId), payload);
       reset(); await load();
@@ -137,8 +141,8 @@ export function PricesCrudView() {
   };
 
   const originalPrice = Number(form.originalPrice) || 0;
-  const discountPercent = Math.min(100, Math.max(0, Number(form.discountPercent) || 0));
-  const effectivePrice = Math.round(originalPrice * (1 - discountPercent / 100));
+  const discountValue = Math.max(0, Number(form.discountValue) || 0);
+  const effectivePrice = Math.max(0, Math.round(form.discountMode === "Percentage" ? originalPrice * (1 - Math.min(100, discountValue) / 100) : originalPrice - discountValue));
 
   const plansPerPage = 5;
   const totalPages = Math.ceil(plans.length / plansPerPage);
@@ -161,8 +165,9 @@ export function PricesCrudView() {
         onFocus={handleOriginalPriceFocus}
         placeholder="1.000.000" 
       />
-      <Input label="Giảm trực tiếp (%)" name="price-discount" type="number" min="0" max="100" step="0.01" value={form.discountPercent} onChange={(event) => setForm({ ...form, discountPercent: event.target.value })} placeholder="0" />
-      <Input label="Giá hiệu lực (chỉ đọc)" name="price-effective" value={`${formatAmount(effectivePrice)} ${form.currency}`} disabled hint="Tự tính = Giá gốc − (Giá gốc × % giảm trực tiếp)." />
+      <Select label="Cách giảm trực tiếp" name="price-discount-mode" value={form.discountMode} onChange={(event) => setForm({ ...form, discountMode: event.target.value as PriceForm["discountMode"], discountValue: "0" })}><option value="Percentage">Theo phần trăm (%)</option><option value="FixedAmount">Theo số tiền</option></Select>
+      <Input label={form.discountMode === "Percentage" ? "Mức giảm (%)" : `Số tiền giảm (${form.currency})`} name="price-discount" type="number" min="0" max={form.discountMode === "Percentage" ? "100" : undefined} step={form.discountMode === "Percentage" ? "0.01" : "1"} value={form.discountValue} onChange={(event) => setForm({ ...form, discountValue: event.target.value })} placeholder="0" />
+      <Input label="Giá hiệu lực (chỉ đọc)" name="price-effective" value={`${formatAmount(effectivePrice)} ${form.currency}`} disabled hint={form.discountMode === "Percentage" ? "Giá gốc trừ phần trăm giảm." : "Giá gốc trừ trực tiếp số tiền giảm."} />
       <Select label="Tiền tệ" name="price-currency" required value={form.currency} onChange={handleCurrencyChange}>
         <option value="VND">VND</option>
         <option value="USD">USD</option>

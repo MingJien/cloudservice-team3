@@ -1,9 +1,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import {
+  Activity,
   ArrowRight,
   Check,
+  Gauge,
+  Server,
+  ShieldCheck,
 } from "lucide-react";
+import { HeroCopyCarousel } from "@/components/landing/hero-copy-carousel";
 import { AnimatedCounter } from "@/components/ui/animated-counter";
 
 type HeroMetricSignal = {
@@ -12,6 +17,8 @@ type HeroMetricSignal = {
   suffix?: string;
   decimals?: number;
   label: string;
+  detail: string;
+  icon: typeof Server;
 };
 
 const heroMetricSignals: readonly HeroMetricSignal[] = [
@@ -19,29 +26,37 @@ const heroMetricSignals: readonly HeroMetricSignal[] = [
     value: 5280,
     suffix: "+",
     label: "Workload kiểm thử",
+    detail: "Năng lực mở rộng theo kịch bản",
+    icon: Server,
   },
   {
     value: 99.98,
     suffix: "%",
     decimals: 2,
     label: "Mục tiêu SLA demo",
+    detail: "Chưa phải cam kết vận hành thật",
+    icon: ShieldCheck,
   },
   {
     value: 24,
     suffix: "/7",
     label: "Vòng giám sát mô phỏng",
+    detail: "Luồng phản ứng theo ngưỡng",
+    icon: Activity,
   },
   {
     value: 12,
     prefix: "< ",
     suffix: "ms",
     label: "Độ trễ kịch bản nội địa",
+    detail: "Mốc thiết kế cần được đo tải",
+    icon: Gauge,
   },
 ] as const;
 
 export function HeroSection() {
   return (
-    <section className="masterpiece-hero relative -mt-[7.25rem] min-h-[min(900px,100svh)] overflow-hidden bg-[#f4faff] pb-20 pt-[calc(7.25rem+5rem)] text-[#07101f] transition-colors duration-300 sm:pt-[calc(7.25rem+6.5rem)] lg:pb-24 lg:pt-[calc(7.25rem+2.75rem)] dark:bg-[#07101f] dark:text-white">
+    <section className="masterpiece-hero relative -mt-[7.25rem] min-h-[min(900px,100svh)] overflow-hidden bg-[#f4faff] pb-20 pt-[calc(7.25rem+5rem)] text-[#07101f] transition-colors duration-300 sm:pt-[calc(7.25rem+6.5rem)] lg:pb-24 lg:pt-[calc(7.25rem+3.5rem)] dark:bg-[#07101f] dark:text-white">
       <div className="absolute inset-0" aria-hidden="true">
         <Image
           src="/hero-bg.png"
@@ -53,38 +68,22 @@ export function HeroSection() {
         />
         <div className="hero-atmosphere-horizontal absolute inset-0" />
         <div className="hero-atmosphere-vertical absolute inset-0" />
-        <div className="masterpiece-hero-grid absolute inset-0 opacity-55" />
+        <div className="masterpiece-hero-grid absolute inset-0 opacity-20 dark:opacity-10" />
         <div className="hero-aurora hero-aurora-cyan" />
         <div className="hero-aurora hero-aurora-violet" />
         <div className="hero-vignette absolute inset-0" />
       </div>
 
-      <div className="relative z-10 mx-auto grid w-full max-w-7xl gap-14 px-5 sm:px-6 lg:grid-cols-[minmax(0,1.06fr)_minmax(390px,.8fr)] lg:items-center lg:gap-12 lg:px-8">
+      {/* ── Single-column centered hero flow ── */}
+      <div className="relative z-10 mx-auto w-full max-w-7xl px-5 sm:px-6 lg:px-8">
+        {/* Copy block — left-aligned, max-width constrained */}
         <div className="hero-copy-enter max-w-3xl">
-          <div className="inline-flex items-center gap-2.5 rounded-full border border-[#cce2ef] bg-white/82 px-3.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,.95),0_12px_34px_-24px_rgba(7,95,157,.38)] backdrop-blur-xl dark:border-[#7dd3fc]/20 dark:bg-[#071426]/68 dark:shadow-[inset_0_1px_0_rgba(255,255,255,.08),0_12px_40px_rgba(2,8,23,.28)]">
-            <span className="relative flex h-2 w-2" aria-hidden="true">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#67e8f9] opacity-60" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-[#67e8f9]" />
-            </span>
-            <span className="text-[0.69rem] font-semibold uppercase tracking-[0.17em] text-[#075f9d] sm:text-xs dark:text-[#bae6fd]">
-              MekongNode · Đồ án Cloud/VPS
-            </span>
-          </div>
-
-          <h1 className="mt-7 max-w-[13ch] text-[clamp(2.7rem,5.2vw,4.75rem)] font-bold leading-[1.04] tracking-[-0.052em] text-[#07101f] dark:text-white">
-            Chọn cloud vừa nhu cầu.
-            <span className="hero-headline-gradient block pb-1">Giá đúng dữ liệu.</span>
-          </h1>
-
-          <p className="mt-7 max-w-2xl text-base font-normal leading-8 text-[#4b6077] sm:text-lg sm:leading-9 dark:text-[#b9c8dd]">
-            MekongNode là đồ án nhóm mô phỏng quy trình mua VPS/Hosting tại Việt Nam. Thông số được
-            chuẩn hóa để dễ so sánh, giá tính tại backend và mỗi yêu cầu có mã tra cứu riêng.
-          </p>
+          <HeroCopyCarousel />
 
           <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
             <Link
               href="/advisor"
-              className="hero-primary-cta group inline-flex min-h-13 items-center justify-center gap-2.5 rounded-2xl px-6 py-3 text-sm font-bold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#087ac1] dark:text-[#06111f] dark:focus-visible:outline-[#67e8f9]"
+              className="glow-btn group inline-flex min-h-13 items-center justify-center gap-2.5 rounded-2xl bg-slate-900 px-6 py-3 text-sm font-bold text-white transition-all hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-slate-900 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200 dark:focus-visible:outline-white"
             >
               So sánh cấu hình
               <ArrowRight size={17} strokeWidth={2.2} className="transition-transform duration-300 group-hover:translate-x-1" />
@@ -98,7 +97,7 @@ export function HeroSection() {
           </div>
 
           <div className="mt-10 grid max-w-2xl gap-3 border-t border-[#d5e5f0] pt-6 sm:grid-cols-3 dark:border-white/10">
-            {["Giá lấy từ API", "Mã tra cứu riêng", "Quản trị theo vai trò"].map((label) => (
+            {["Giá lấy từ API", "Tham chiếu ISO 27001", "RBAC Admin / Editor"].map((label) => (
               <div key={label} className="flex items-center gap-2.5 text-sm font-medium text-[#405a72] dark:text-[#c8d6e8]">
                 <span className="flex h-5 w-5 items-center justify-center rounded-full border border-[#0b8bd8]/25 bg-[#0b8bd8]/10 text-[#087ac1] dark:border-[#67e8f9]/25 dark:bg-[#67e8f9]/10 dark:text-[#67e8f9]">
                   <Check size={12} strokeWidth={2.5} />
@@ -109,7 +108,8 @@ export function HeroSection() {
           </div>
         </div>
 
-        <div className="hero-telemetry-enter relative mx-auto w-full max-w-[31.5rem] lg:mx-0 lg:justify-self-end">
+        {/* Telemetry card — centered focal piece between copy and KPI strip */}
+        <div className="hero-telemetry-enter relative mx-auto mt-12 w-full max-w-lg sm:mt-14">
           <div className="hero-telemetry-glow absolute -inset-8" aria-hidden="true" />
           <div className="hero-telemetry-frame relative">
             <aside className="hero-telemetry-board relative overflow-hidden rounded-[23px] border border-white/[0.16] p-4 backdrop-blur-2xl sm:p-5" aria-label="Số liệu telemetry mô phỏng">
@@ -120,17 +120,17 @@ export function HeroSection() {
                     Live data stream
                   </span>
                 </div>
-                <p className="mt-4 flex flex-wrap items-end gap-x-2 gap-y-1 font-mono leading-none tabular-nums">
+                <p className="mt-4 flex flex-wrap items-end justify-center gap-x-2 gap-y-1 font-mono leading-none tabular-nums">
                   <AnimatedCounter
                     value={14_850_290}
                     suffix="+"
                     duration={4000}
                     liveTicker
                     respectReducedMotion={false}
-                    className="hero-primary-number text-[clamp(2.1rem,4.7vw,3.45rem)] font-bold tracking-[-0.075em]"
+                    className="hero-primary-number text-[clamp(2.1rem,4.7vw,3.45rem)] font-bold tracking-[-0.075em] text-slate-900 dark:text-white"
                     ariaLabel="Lưu lượng xử lý mô phỏng hôm nay: 14,850,290 yêu cầu trở lên"
                   />
-                  <span className="pb-1 text-xs font-bold uppercase tracking-[0.13em] text-[#a5f3fc]">requests</span>
+                  <span className="pb-1 text-xs font-bold uppercase tracking-[0.13em] text-slate-500 dark:text-slate-400">requests</span>
                 </p>
               </div>
             </aside>
@@ -138,11 +138,21 @@ export function HeroSection() {
         </div>
       </div>
 
-      <div className="hero-kpi-strip relative z-10 mx-auto mt-14 w-[calc(100%-2.5rem)] max-w-7xl rounded-[1.75rem] border px-5 py-8 sm:w-[calc(100%-3rem)] sm:px-8 lg:mt-16 lg:px-10 lg:py-10">
-        <div className="grid grid-cols-2 gap-x-4 gap-y-8 lg:grid-cols-4 lg:divide-x lg:divide-[#d8e5ef] dark:lg:divide-white/10">
-          {heroMetricSignals.map(({ value, prefix, suffix, decimals, label }) => (
-            <article key={label} className="min-w-0 text-center lg:px-5">
-              <p className="hero-kpi-value whitespace-nowrap font-mono text-[clamp(2rem,4vw,3.25rem)] font-bold leading-none tracking-[-0.07em] tabular-nums">
+      {/* KPI strip — immediately below centered telemetry */}
+      <div className="hero-kpi-strip relative z-10 mx-auto mt-10 w-[calc(100%-2.5rem)] max-w-7xl rounded-[1.75rem] border px-5 py-8 sm:mt-12 sm:w-[calc(100%-3rem)] sm:px-8 lg:px-10 lg:py-10">
+        <div className="mb-6 flex flex-col justify-between gap-3 border-b border-[#d9e9f2] pb-5 sm:flex-row sm:items-center dark:border-white/[0.08]">
+          <div>
+            <p className="text-[0.66rem] font-bold uppercase tracking-[0.18em] text-[#0873b8] dark:text-cyan-300">Trust &amp; scale · bản trình diễn</p>
+            <h2 className="mt-1 text-lg font-bold tracking-[-0.025em] text-[#10283f] dark:text-white">Các mốc dùng để kiểm chứng giao diện và luồng dữ liệu</h2>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {heroMetricSignals.map(({ value, prefix, suffix, decimals, label, detail, icon: Icon }) => (
+            <article key={label} className="hero-kpi-card group min-w-0 rounded-2xl border p-4 text-left sm:p-5">
+              <span className="hero-kpi-icon grid h-9 w-9 place-items-center rounded-xl border">
+                <Icon size={16} aria-hidden="true" />
+              </span>
+              <p className="mt-5 pr-2 whitespace-nowrap font-mono text-[clamp(1.75rem,3.4vw,2.7rem)] font-bold leading-none tracking-[-0.07em] tabular-nums">
                 <AnimatedCounter
                   value={value}
                   prefix={prefix}
@@ -150,10 +160,12 @@ export function HeroSection() {
                   decimals={decimals}
                   duration={4000}
                   respectReducedMotion={false}
+                  className="hero-kpi-value"
                   ariaLabel={`${prefix ?? ""}${value}${suffix ?? ""} — ${label}`}
                 />
               </p>
-              <p className="mt-3 text-xs font-medium text-[#64748b] sm:text-sm dark:text-[#a9b8cc]">{label}</p>
+              <p className="mt-3 text-xs font-bold text-[#18344d] sm:text-sm dark:text-slate-100">{label}</p>
+              <p className="mt-1 hidden text-[0.68rem] leading-5 text-[#6b7f93] sm:block dark:text-slate-400">{detail}</p>
             </article>
           ))}
         </div>

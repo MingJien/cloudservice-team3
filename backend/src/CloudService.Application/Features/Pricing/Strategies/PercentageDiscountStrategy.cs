@@ -7,8 +7,13 @@ public sealed class PercentageDiscountStrategy : IPromotionDiscountStrategy
 {
     public DiscountType DiscountType => DiscountType.Percentage;
 
-    public decimal Calculate(decimal amount, decimal discountValue)
+    public decimal Calculate(decimal amount, decimal discountValue, decimal? maxDiscountAmount)
     {
-        return decimal.Round(amount * discountValue / 100m, 2, MidpointRounding.AwayFromZero);
+        var discount = decimal.Round(amount * discountValue / 100m, 2, MidpointRounding.AwayFromZero);
+        if (maxDiscountAmount.HasValue && discount > maxDiscountAmount.Value)
+        {
+            return maxDiscountAmount.Value;
+        }
+        return discount;
     }
 }

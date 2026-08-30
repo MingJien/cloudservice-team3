@@ -1,13 +1,13 @@
 # CloudService — .NET 10 enterprise upgrade
 
-Ngày xác nhận: **2026-08-21**. Tài liệu này mô tả phần nâng cấp backend/frontend và là runbook ngắn để nhóm đưa vào báo cáo, demo, phản biện.
+Ngày xác nhận gần nhất: **2026-08-23**. Tài liệu này mô tả phần nâng cấp backend/frontend và là runbook ngắn để nhóm đưa vào báo cáo, demo, phản biện.
 
 ## 1. Baseline kỹ thuật đã chốt
 
 - Toàn bộ project backend dùng `net10.0`; `global.json` khóa SDK 10.0.1xx; EF Core, JWT bearer và EF Design dùng `10.0.10`.
 - Docker API dùng SDK/ASP.NET runtime 10; GitHub Actions cài SDK `10.0.x`.
 - Clean Architecture giữ đúng chiều phụ thuộc: Domain → Application ports/use cases → Infrastructure adapters → WebApi.
-- Release build: `0 warning / 0 error`; xUnit: `39/39`; frontend ESLint, TypeScript strict và Next production build đều đạt.
+- Release build: `0 warning / 0 error`; xUnit: `51/51`; frontend ESLint, TypeScript strict và Next production build đều đạt.
 
 ## 2. Pattern và lý do áp dụng
 
@@ -100,10 +100,10 @@ Mở `http://localhost:3000`. `.env.local` phải trỏ backend/BFF tới `http:
 
 ```text
 dotnet build backend/CloudService.sln --configuration Release  PASS, net10.0, 0 warning/error
-dotnet test backend/CloudService.sln -c Release --no-build     PASS, 39/39
+dotnet test backend/CloudService.sln -c Release --no-build     PASS, 51/51
 frontend: npm run lint                                         PASS
 frontend: npx tsc --noEmit                                     PASS
-frontend: npm run build                                        PASS, 36 routes
+frontend: npm run build                                        PASS, 37 routes
 runtime migration/startup                                      PASS
 GET /health                                                    Healthy
 GET /api/serviceplans/1/qr                                     image/png, valid PNG signature

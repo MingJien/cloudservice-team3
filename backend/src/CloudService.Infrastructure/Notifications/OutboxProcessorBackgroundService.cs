@@ -18,6 +18,22 @@ public sealed class OutboxProcessorBackgroundService(
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        if (!options.Enabled)
+        {
+            logger.LogWarning(
+                "Telegram notification delivery is disabled. Order events remain safely queued in OutboxMessages until Telegram:Enabled, BotToken and ChatId are configured.");
+        }
+        else
+        {
+            logger.LogInformation("Telegram outbox delivery enabled; QR links use {PublicBaseUrl}.", options.PublicBaseUrl);
+            if (!Uri.TryCreate(options.PublicBaseUrl, UriKind.Absolute, out var publicUri) ||
+                publicUri.Scheme != Uri.UriSchemeHttps)
+            {
+                logger.LogWarning(
+                    "Telegram:PublicBaseUrl is not HTTPS. QR can be generated, but a phone cannot normally open localhost or a private development address.");
+            }
+        }
+
         using var timer = new PeriodicTimer(TimeSpan.FromSeconds(options.PollIntervalSeconds), timeProvider);
         while (!stoppingToken.IsCancellationRequested)
         {

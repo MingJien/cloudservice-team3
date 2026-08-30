@@ -15,6 +15,7 @@ public sealed class AppUserConfiguration : IEntityTypeConfiguration<AppUser>
         builder.Property(x => x.Email).HasMaxLength(255).IsRequired();
         builder.Property(x => x.PasswordHash).HasMaxLength(500).IsRequired();
         builder.Property(x => x.IsActive).HasDefaultValue(true);
+        builder.Property(x => x.MustChangePassword).HasDefaultValue(false);
         builder.Property(x => x.LastLoginAt).HasColumnType("datetime2(0)");
         builder.Property(x => x.CreatedAt).HasColumnType("datetime2(0)").HasDefaultValueSql("SYSUTCDATETIME()");
         builder.Property(x => x.UpdatedAt).HasColumnType("datetime2(0)");

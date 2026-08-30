@@ -26,19 +26,38 @@ public sealed class NewsArticleRequest
 public sealed record NewsCategoryItem(int Id, string Name, string Slug, string? Description, bool IsActive, int PublishedArticleCount, int TotalArticleCount);
 public sealed record NewsArticleItem(int Id, int CategoryId, string CategoryName, string CategorySlug, string Title, string Slug, string? Summary, string Content, string? ThumbnailUrl, string? AuthorName, DateTime? PublishedAt, bool IsPublished, bool IsDeleted, int ViewCount, DateTime CreatedAt, DateTime? UpdatedAt);
 public sealed record NewsListQuery(int PageNumber = 1, int PageSize = 10, string? Search = null, string? CategorySlug = null, bool IncludeUnpublished = false);
-public sealed record TestimonialItem(int Id, string CustomerName, string? CompanyName, string? Position, string Content, string? AvatarUrl, string? LogoUrl, byte Rating, int DisplayOrder, bool IsActive);
+public sealed record TestimonialItem(
+    int Id,
+    string CustomerName,
+    string? CompanyName,
+    string? Position,
+    string Content,
+    string? AvatarUrl,
+    string? LogoUrl,
+    byte Rating,
+    int DisplayOrder,
+    bool IsActive,
+    bool IsVerifiedOrder,
+    bool IsFeaturedCustomer,
+    string? OrderReference = null,
+    string? ServicePlanName = null,
+    string? ServiceCategoryName = null,
+    TestimonialModerationStatus ModerationStatus = TestimonialModerationStatus.Pending,
+    DateTime CreatedAt = default);
 
-public sealed class TestimonialRequest
+public sealed class SubmitTestimonialRequest
 {
-    [Required, StringLength(150)] public string CustomerName { get; init; } = string.Empty;
-    [StringLength(200)] public string? CompanyName { get; init; }
-    [StringLength(100)] public string? Position { get; init; }
-    [Required, StringLength(1000)] public string Content { get; init; } = string.Empty;
-    [Url, StringLength(500)] public string? AvatarUrl { get; init; }
-    [Url, StringLength(500)] public string? LogoUrl { get; init; }
+    [Required, StringLength(32, MinimumLength = 10)] public string TrackingCode { get; init; } = string.Empty;
+    [Required, StringLength(1000, MinimumLength = 10)] public string Content { get; init; } = string.Empty;
     [Range(1, 5)] public byte Rating { get; init; } = 5;
-    [Range(0, int.MaxValue)] public int DisplayOrder { get; init; }
+    public bool ConsentToPublish { get; init; }
 }
+
+public sealed record TestimonialSubmissionResult(
+    int Id,
+    bool IsPendingModeration,
+    bool IsFeaturedCustomer,
+    string Message);
 
 public sealed class CreateContactRequest
 {
@@ -47,14 +66,19 @@ public sealed class CreateContactRequest
     [Phone, StringLength(20)] public string? Phone { get; init; }
     [Required, StringLength(250)] public string Subject { get; init; } = string.Empty;
     [Required, StringLength(3000)] public string Message { get; init; } = string.Empty;
+    [Range(1, long.MaxValue)] public long? ParentContactRequestId { get; init; }
 }
 
-public sealed record ContactRequestItem(long Id, string TrackingCode, string FullName, string Email, string? Phone, string Subject, string Message, string? AdminReply, ContactRequestStatus Status, DateTime CreatedAt, DateTime? UpdatedAt, DateTime? RepliedAt);
-public sealed record PublicContactStatusItem(string TrackingCode, string Subject, ContactRequestStatus Status, string? AdminReply, DateTime CreatedAt, DateTime? RepliedAt);
+public sealed record ContactRequestItem(long Id, string TrackingCode, string FullName, string Email, string? Phone, string Subject, string Message, string? AdminReply, ContactResponderRole? RepliedByRole, ContactRequestStatus Status, DateTime CreatedAt, DateTime? UpdatedAt, DateTime? RepliedAt, long? ParentContactRequestId, string? ParentSubject, int FollowUpCount);
+public sealed record PublicContactStatusItem(string TrackingCode, string Subject, ContactRequestStatus Status, string? AdminReply, ContactResponderRole? RepliedByRole, DateTime CreatedAt, DateTime? RepliedAt);
 public sealed record ContactListQuery(int PageNumber = 1, int PageSize = 20, ContactRequestStatus? Status = null, string? Search = null);
+public sealed record PublicQnAFollowUpItem(long Id, string FullName, string Message, string AdminReply, ContactResponderRole? RepliedByRole, DateTime CreatedAt, DateTime? RepliedAt);
+public sealed record PublicQnAItem(long Id, string FullName, string Subject, string Message, string AdminReply, ContactResponderRole? RepliedByRole, DateTime CreatedAt, DateTime? RepliedAt, IReadOnlyCollection<PublicQnAFollowUpItem> FollowUps);
+public sealed record PublicQnAQuery(int PageNumber = 1, int PageSize = 10, string? Subject = null);
 public sealed class UpdateContactStatusRequest
 {
     [Required] public ContactRequestStatus Status { get; init; }
+    [StringLength(3000)] public string? AdminReply { get; init; }
 }
 
 public sealed class ReplyContactRequest

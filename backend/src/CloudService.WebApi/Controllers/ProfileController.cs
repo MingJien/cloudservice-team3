@@ -29,7 +29,7 @@ public sealed class ProfileController(IAuthStore authStore, TimeProvider timePro
             return Unauthorized();
         }
 
-        return Ok(new AuthenticatedUser(user.Id, user.UserName, user.FullName, user.Email, user.Role.Name, user.AvatarUrl));
+        return Ok(new AuthenticatedUser(user.Id, user.UserName, user.FullName, user.Email, user.Role.Name, user.AvatarUrl, user.MustChangePassword));
     }
 
     [HttpPut]
@@ -56,7 +56,7 @@ public sealed class ProfileController(IAuthStore authStore, TimeProvider timePro
         user.UpdateProfile(request.FullName, request.Email, timeProvider.GetUtcNow().UtcDateTime);
         await authStore.SaveChangesAsync(cancellationToken);
 
-        return Ok(new AuthenticatedUser(user.Id, user.UserName, user.FullName, user.Email, user.Role.Name, user.AvatarUrl));
+        return Ok(new AuthenticatedUser(user.Id, user.UserName, user.FullName, user.Email, user.Role.Name, user.AvatarUrl, user.MustChangePassword));
     }
 
     [HttpPost("avatar")]

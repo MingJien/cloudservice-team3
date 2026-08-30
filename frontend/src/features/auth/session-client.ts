@@ -8,6 +8,7 @@ export interface SessionUser {
   email: string;
   role: string;
   avatarUrl?: string;
+  mustChangePassword: boolean;
 }
 
 export async function login(userNameOrEmail: string, password: string) {

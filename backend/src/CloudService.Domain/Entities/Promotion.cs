@@ -10,7 +10,7 @@ public sealed class Promotion : AuditableEntity
     {
     }
 
-    public Promotion(string code, string name, DiscountType discountType, decimal discountValue, DateTime startAt, DateTime endAt)
+    public Promotion(string code, string name, DiscountType discountType, decimal discountValue, DateTime startAt, DateTime endAt, decimal? maxDiscountAmount = null, decimal minOrderValue = 0)
     {
         if (endAt <= startAt)
         {
@@ -28,6 +28,8 @@ public sealed class Promotion : AuditableEntity
         DiscountValue = discountValue;
         StartAt = startAt;
         EndAt = endAt;
+        MaxDiscountAmount = maxDiscountAmount;
+        MinOrderValue = minOrderValue >= 0 ? minOrderValue : 0;
     }
 
     public string Code { get; private set; } = string.Empty;
@@ -37,6 +39,8 @@ public sealed class Promotion : AuditableEntity
     public decimal DiscountValue { get; private set; }
     public DateTime StartAt { get; private set; }
     public DateTime EndAt { get; private set; }
+    public decimal? MaxDiscountAmount { get; private set; }
+    public decimal MinOrderValue { get; private set; }
     public int? UsageLimit { get; private set; }
     public int UsedCount { get; private set; }
     public bool IsActive { get; private set; } = true;
@@ -52,7 +56,9 @@ public sealed class Promotion : AuditableEntity
         DateTime startAt,
         DateTime endAt,
         int? usageLimit,
-        string? description)
+        string? description,
+        decimal? maxDiscountAmount = null,
+        decimal minOrderValue = 0)
     {
         if (endAt <= startAt) throw new ArgumentException("Promotion end must be after start.", nameof(endAt));
         if (discountValue <= 0 || (discountType == DiscountType.Percentage && discountValue > 100))
@@ -68,6 +74,8 @@ public sealed class Promotion : AuditableEntity
         EndAt = endAt;
         UsageLimit = usageLimit;
         Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
+        MaxDiscountAmount = maxDiscountAmount;
+        MinOrderValue = minOrderValue >= 0 ? minOrderValue : 0;
     }
 
     public void SetActive(bool isActive) => IsActive = isActive;

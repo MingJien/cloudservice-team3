@@ -227,8 +227,8 @@ public sealed class ServiceCatalogService(
         var code = request.Code.Trim().ToUpperInvariant();
         if (await repository.PromotionCodeExistsAsync(code, null, cancellationToken)) throw Conflict("Mã khuyến mãi đã tồn tại.");
         await EnsurePlans(request.ServicePlanIds, cancellationToken);
-        var promotion = new Promotion(code, request.Name, request.DiscountType, request.DiscountValue, request.StartAt, request.EndAt);
-        promotion.Update(code, request.Name, request.DiscountType, request.DiscountValue, request.StartAt, request.EndAt, request.UsageLimit, request.Description);
+        var promotion = new Promotion(code, request.Name, request.DiscountType, request.DiscountValue, request.StartAt, request.EndAt, request.MaxDiscountAmount, request.MinOrderValue);
+        promotion.Update(code, request.Name, request.DiscountType, request.DiscountValue, request.StartAt, request.EndAt, request.UsageLimit, request.Description, request.MaxDiscountAmount, request.MinOrderValue);
         repository.Add(promotion);
         await unitOfWork.SaveChangesAsync(cancellationToken);
         repository.ReplacePromotionPlans(promotion, request.ServicePlanIds);
@@ -244,7 +244,7 @@ public sealed class ServiceCatalogService(
         var code = request.Code.Trim().ToUpperInvariant();
         if (await repository.PromotionCodeExistsAsync(code, id, cancellationToken)) throw Conflict("Mã khuyến mãi đã tồn tại.");
         await EnsurePlans(request.ServicePlanIds, cancellationToken);
-        promotion.Update(code, request.Name, request.DiscountType, request.DiscountValue, request.StartAt, request.EndAt, request.UsageLimit, request.Description);
+        promotion.Update(code, request.Name, request.DiscountType, request.DiscountValue, request.StartAt, request.EndAt, request.UsageLimit, request.Description, request.MaxDiscountAmount, request.MinOrderValue);
         repository.ReplacePromotionPlans(promotion, request.ServicePlanIds);
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return MapPromotion(promotion);
@@ -441,5 +441,5 @@ public sealed class ServiceCatalogService(
         plan.IsActive,
         plan.IsDeleted,
         plan.Prices.Where(priceFilter).OrderBy(price => price.BillingCycle).ThenByDescending(price => price.EffectiveFrom).Select(MapPrice).ToArray());
-    internal static PromotionItem MapPromotion(Promotion promotion) => new(promotion.Id, promotion.Code, promotion.Name, promotion.Description, promotion.DiscountType, promotion.DiscountValue, promotion.StartAt, promotion.EndAt, promotion.UsageLimit, promotion.UsedCount, promotion.IsActive, promotion.PromotionServicePlans.Select(item => item.ServicePlanId).ToArray(), Convert.ToBase64String(promotion.RowVersion));
+    internal static PromotionItem MapPromotion(Promotion promotion) => new(promotion.Id, promotion.Code, promotion.Name, promotion.Description, promotion.DiscountType, promotion.DiscountValue, promotion.StartAt, promotion.EndAt, promotion.UsageLimit, promotion.UsedCount, promotion.IsActive, promotion.PromotionServicePlans.Select(item => item.ServicePlanId).ToArray(), promotion.MaxDiscountAmount, promotion.MinOrderValue, Convert.ToBase64String(promotion.RowVersion));
 }

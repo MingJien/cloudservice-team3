@@ -24,6 +24,7 @@ public sealed class AppUser : AuditableEntity
     public string? AvatarUrl { get; private set; }
     public int RoleId { get; private set; }
     public bool IsActive { get; private set; } = true;
+    public bool MustChangePassword { get; private set; }
     public DateTime? LastLoginAt { get; private set; }
     public Role Role { get; private set; } = null!;
     public ICollection<RefreshToken> RefreshTokens { get; private set; } = new List<RefreshToken>();
@@ -38,6 +39,19 @@ public sealed class AppUser : AuditableEntity
     public void ChangePasswordHash(string passwordHash, DateTime utcNow)
     {
         PasswordHash = Guard.Required(passwordHash, nameof(passwordHash));
+        MustChangePassword = false;
+        MarkUpdated(utcNow);
+    }
+
+    public void RequirePasswordChange() => MustChangePassword = true;
+
+    public void Deactivate(DateTime utcNow)
+    {
+        // Retiring a classroom fixture must invalidate its login path without
+        // deleting the audit trail that explains historical orders and payouts.
+        // Production account administration follows the same soft-disable rule.
+        if (!IsActive) return;
+        IsActive = false;
         MarkUpdated(utcNow);
     }
 

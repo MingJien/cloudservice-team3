@@ -36,12 +36,12 @@ public sealed class AuditAndAuthorizationTests
     }
 
     [Fact]
-    public void Change_password_endpoint_allows_only_admin_or_editor()
+    public void Change_password_endpoint_allows_every_authenticated_role()
     {
         var method = typeof(AuthController).GetMethod(nameof(AuthController.ChangePassword));
         var attribute = method!.GetCustomAttribute<AuthorizeAttribute>();
 
         Assert.NotNull(attribute);
-        Assert.Equal(RoleNames.AdminOrEditor, attribute.Roles);
+        Assert.Null(attribute.Roles);
     }
 }

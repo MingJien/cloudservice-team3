@@ -17,6 +17,9 @@ public sealed class RefreshTokenConfiguration : IEntityTypeConfiguration<Refresh
         builder.Property(x => x.ReplacedByHash).HasColumnType("varchar(128)");
         builder.Property(x => x.CreatedAt).HasColumnType("datetime2(0)").HasDefaultValueSql("SYSUTCDATETIME()");
         builder.Property(x => x.CreatedByIp).HasColumnType("varchar(45)");
+        // Rotation is one-time-use. SQL Server rowversion makes concurrent
+        // refresh requests fail deterministically.
+        builder.Property(x => x.RowVersion).IsRowVersion().IsConcurrencyToken();
         builder.HasIndex(x => x.TokenHash).IsUnique().HasDatabaseName("UQ_RefreshTokens_TokenHash");
         builder.HasIndex(x => new { x.UserId, x.ExpiresAt }).HasDatabaseName("IX_RefreshTokens_UserId_ExpiresAt");
         builder.HasOne(x => x.User).WithMany(x => x.RefreshTokens).HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.NoAction).HasConstraintName("FK_RefreshTokens_AppUsers");

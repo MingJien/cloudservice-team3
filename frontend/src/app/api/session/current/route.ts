@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { applySessionCookies, callBackend, clearSessionCookies, forwardBackendResponse, getValidAccessToken, problemResponse } from "@/lib/server/backend-session";
+import { applySessionCookies, callBackend, clearSessionCookies, forwardBackendResponse, getValidAccessToken, isSameOrigin, problemResponse } from "@/lib/server/backend-session";
 
-export async function GET() {
+export async function GET(request: Request) {
+  if (!isSameOrigin(request)) return problemResponse(403, "Nguồn yêu cầu không hợp lệ.");
   const token = await getValidAccessToken();
   if (!token) {
     const response = problemResponse(401, "Phiên đăng nhập không hợp lệ.");

@@ -41,6 +41,14 @@ export function FloatingActionButtons() {
       }`}
     >
       <Link
+        href="/offers"
+        aria-label="Xem ưu đãi và voucher đang áp dụng"
+        className="group relative flex h-14 w-14 items-center justify-center rounded-2xl border border-[#9dd0e4] bg-white shadow-[0_16px_38px_-18px_rgba(8,114,180,.75)] transition-all animate-wiggle hover:-translate-y-1 hover:rotate-[-2deg] dark:border-[#67e8f9]/25 dark:bg-[#102136]"
+      >
+        <Image src="/images/gift-box.svg" alt="" width={42} height={42} className="h-10 w-10" />
+        <span className="pointer-events-none absolute right-full mr-3 whitespace-nowrap rounded-lg bg-ink-900 px-3 py-1.5 text-xs font-semibold text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 dark:bg-white dark:text-ink-950">Xem ưu đãi</span>
+      </Link>
+      <Link
         href="/advisor"
         aria-label="Mở công cụ tư vấn chọn gói cloud"
         className="group flex min-h-12 items-center gap-2 rounded-2xl border border-[#b8d7e9] bg-white px-4 text-sm font-bold text-[#075f9d] shadow-[0_14px_34px_-18px_rgba(8,72,114,.62)] transition-all hover:-translate-y-0.5 hover:border-[#78b9db] hover:bg-[#f4fbff] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#0b8bd8] dark:border-white/12 dark:bg-[#102136] dark:text-[#8ee8f2] dark:hover:bg-[#142b45]"

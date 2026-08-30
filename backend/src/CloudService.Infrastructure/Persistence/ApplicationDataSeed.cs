@@ -13,7 +13,8 @@ internal static class ApplicationDataSeed
     {
         modelBuilder.Entity<Role>().HasData(
             new { Id = 1, Name = RoleNames.Admin, Description = "Toàn quyền quản trị hệ thống", CreatedAt = SeededAt },
-            new { Id = 2, Name = RoleNames.Editor, Description = "Quản lý nội dung và xử lý yêu cầu", CreatedAt = SeededAt });
+            new { Id = 2, Name = RoleNames.Editor, Description = "Quản lý nội dung và xử lý yêu cầu", CreatedAt = SeededAt },
+            new { Id = 3, Name = RoleNames.Affiliate, Description = "Đối tác tiếp thị liên kết, chỉ truy cập dữ liệu của chính mình", CreatedAt = SeededAt });
 
         modelBuilder.Entity<ServiceCategory>().HasData(
             Category(1, "VPS", "vps", "Máy chủ ảo hiệu năng cao", 1),

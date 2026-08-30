@@ -63,23 +63,35 @@ public sealed class ExtendedDomainBehaviorTests
     }
 
     [Fact]
-    public void Affiliate_application_preserves_status_and_trims_details()
+    public void Affiliate_application_normalizes_identity_and_preserves_status()
     {
-        var application = new AffiliateApplication("Partner", "partner@example.com", "0900000000");
+        var application = new AffiliateApplication("AFF-TEST2026001", "Partner", " Partner@Example.COM ", "0900 000 000");
 
-        application.SetDetails(" partner.example.com ", " Interested ");
+        application.SetDetails(" https://PARTNER.example.com/cloud/#overview ", " Interested ");
         application.ChangeStatus(AffiliateApplicationStatus.Processing, " Review ");
 
-        Assert.Equal("partner.example.com", application.WebsiteOrChannel);
+        Assert.Equal("partner@example.com", application.Email);
+        Assert.Equal("0900000000", application.Phone);
+        Assert.Equal("https://partner.example.com/cloud", application.WebsiteOrChannel);
         Assert.Equal("Interested", application.Note);
         Assert.Equal(AffiliateApplicationStatus.Processing, application.Status);
         Assert.Equal("Review", application.InternalNote);
     }
 
     [Fact]
+    public void Affiliate_application_rejects_insecure_channel_and_invalid_phone()
+    {
+        Assert.Throws<ArgumentException>(() => new AffiliateApplication("AFF-TEST2026002", "Partner", "partner@example.com", "84900000000"));
+
+        var application = new AffiliateApplication("AFF-TEST2026003", "Partner", "partner@example.com", "0900000000");
+
+        Assert.Throws<ArgumentException>(() => application.SetDetails("http://partner.example.com", null));
+    }
+
+    [Fact]
     public void Contact_request_rejects_unknown_status_value()
     {
-        var contact = new ContactRequest("Customer", "customer@example.com", "Subject", "Message");
+        var contact = new ContactRequest("0123456789abcdef0123456789abcdef", "Customer", "customer@example.com", "Subject", "Message");
 
         Assert.Throws<ArgumentOutOfRangeException>(() => contact.ChangeStatus((ContactRequestStatus)999));
     }
@@ -87,7 +99,7 @@ public sealed class ExtendedDomainBehaviorTests
     [Fact]
     public void Contact_request_follows_new_read_replied_workflow()
     {
-        var contact = new ContactRequest("Customer", "customer@example.com", "Subject", "Message");
+        var contact = new ContactRequest("0123456789abcdef0123456789abcdef", "Customer", "customer@example.com", "Subject", "Message");
 
         contact.ChangeStatus(ContactRequestStatus.Read);
         contact.ChangeStatus(ContactRequestStatus.Replied);
@@ -98,7 +110,7 @@ public sealed class ExtendedDomainBehaviorTests
     [Fact]
     public void Contact_request_cannot_skip_or_reopen_terminal_workflow()
     {
-        var contact = new ContactRequest("Customer", "customer@example.com", "Subject", "Message");
+        var contact = new ContactRequest("0123456789abcdef0123456789abcdef", "Customer", "customer@example.com", "Subject", "Message");
 
         Assert.Throws<InvalidOperationException>(() => contact.ChangeStatus(ContactRequestStatus.Replied));
         contact.ChangeStatus(ContactRequestStatus.Read);
@@ -109,12 +121,13 @@ public sealed class ExtendedDomainBehaviorTests
     [Fact]
     public void Contact_reply_records_public_answer_and_completes_workflow()
     {
-        var contact = new ContactRequest("Customer", "customer@example.com", "Subject", "Message");
+        var contact = new ContactRequest("0123456789abcdef0123456789abcdef", "Customer", "customer@example.com", "Subject", "Message");
 
-        contact.Reply("  Đội ngũ sẽ liên hệ lúc 09:00 ngày mai.  ");
+        contact.Reply("  Đội ngũ sẽ liên hệ lúc 09:00 ngày mai.  ", ContactResponderRole.Editor);
 
         Assert.Matches("^[a-f0-9]{32}$", contact.TrackingCode);
         Assert.Equal("Đội ngũ sẽ liên hệ lúc 09:00 ngày mai.", contact.AdminReply);
+        Assert.Equal(ContactResponderRole.Editor, contact.RepliedByRole);
         Assert.Equal(ContactRequestStatus.Replied, contact.Status);
         Assert.NotNull(contact.RepliedAt);
     }
@@ -156,6 +169,39 @@ public sealed class ExtendedDomainBehaviorTests
     }
 
     [Fact]
+    public void Retiring_a_demo_partner_disables_future_access_without_erasing_financial_history()
+    {
+        var partner = new AffiliatePartner(1, "AFF2_RETIRED", "Legacy fixture", 9m);
+        var user = new AppUser("aff2", "Legacy fixture", "aff2@example.local", "hash", 1);
+        var retiredAt = new DateTime(2026, 8, 29, 0, 0, 0, DateTimeKind.Utc);
+
+        partner.Deactivate(retiredAt);
+        user.Deactivate(retiredAt);
+
+        Assert.False(partner.IsActive);
+        Assert.False(user.IsActive);
+        Assert.Equal(retiredAt, partner.UpdatedAt);
+        Assert.Equal(retiredAt, user.UpdatedAt);
+    }
+
+    [Theory]
+    [InlineData(0, AffiliateTier.Newbie, 5)]
+    [InlineData(5, AffiliateTier.Bronze, 7)]
+    [InlineData(20, AffiliateTier.Silver, 9)]
+    [InlineData(50, AffiliateTier.Gold, 12)]
+    public void Affiliate_tier_is_derived_from_completed_orders_and_owns_the_rate(int completedOrders, AffiliateTier expectedTier, int expectedRate)
+    {
+        var partner = new AffiliatePartner(1, "TIER_POLICY", "Tier Policy", 5m);
+        var evaluatedAt = new DateTime(2026, 8, 31, 23, 59, 0, DateTimeKind.Utc);
+
+        partner.EvaluateTier(completedOrders, evaluatedAt);
+
+        Assert.Equal(expectedTier, partner.Tier);
+        Assert.Equal(expectedRate, partner.CommissionRate);
+        Assert.Equal(evaluatedAt, partner.TierEvaluatedAtUtc);
+    }
+
+    [Fact]
     public void Affiliate_attribution_snapshots_revenue_and_moves_commission_through_workflow()
     {
         var partner = new AffiliatePartner(1, "KOL123", "KOL Demo", 10m);
@@ -177,10 +223,16 @@ public sealed class ExtendedDomainBehaviorTests
         Assert.Equal(90_000m, attribution.CommissionAmount);
         Assert.Equal(AffiliateCommissionStatus.Pending, attribution.Status);
 
-        attribution.MarkEligible(now);
+        var availableAt = now.AddDays(30);
+        attribution.ScheduleHold(availableAt, now);
+        attribution.Mature(availableAt.AddTicks(-1));
+
+        Assert.Equal(AffiliateCommissionStatus.Pending, attribution.Status);
+
+        attribution.Mature(availableAt);
 
         Assert.Equal(AffiliateCommissionStatus.Eligible, attribution.Status);
-        Assert.Equal(now, attribution.EligibleAtUtc);
+        Assert.Equal(availableAt, attribution.EligibleAtUtc);
     }
 
     [Fact]

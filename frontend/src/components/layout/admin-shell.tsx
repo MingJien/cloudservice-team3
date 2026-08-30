@@ -5,11 +5,11 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ChangeEvent, type ElementType, type ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Activity, Bell, Camera, ChevronDown, CreditCard, FileText, KeyRound, LayoutDashboard, LogOut, Mail, Menu, PanelLeftClose, PanelLeftOpen, RotateCcw, Server, ShoppingCart, Star, Tag, Users, UserRound, UploadCloud } from "lucide-react";
+import { Activity, Banknote, Bell, Camera, ChevronDown, CreditCard, FileText, KeyRound, LayoutDashboard, LogOut, Mail, Menu, PanelLeftClose, PanelLeftOpen, RotateCcw, Server, ShoppingCart, Star, Tag, Users, UserRound, UploadCloud } from "lucide-react";
 import { currentSession, logout, type SessionUser } from "@/features/auth/session-client";
 import { getDashboard } from "@/features/dashboard/api";
 import { resetBrandLogo, uploadBrandLogo } from "@/features/branding/api";
-import { Logo } from "@/components/brand/logo";
+import { BrandLockup, Logo } from "@/components/brand/logo";
 import { useBranding } from "@/components/brand/brand-provider";
 import { apiAssetUrl } from "@/lib/api-client";
 import { cn } from "@/lib/cn";
@@ -20,9 +20,10 @@ type Notice = { id: number; title: string; detail: string; href: string; time: s
 
 const navGroups: { label: string; items: Item[] }[] = [
   { label: "Điều hành", items: [
-    { label: "Tổng quan", href: "/admin", icon: LayoutDashboard, roles: ["Admin", "Editor"] },
+    { label: "Tổng quan", href: "/admin", icon: LayoutDashboard, roles: ["Admin"] },
     { label: "Đơn dịch vụ", href: "/admin/order-requests", icon: ShoppingCart, roles: ["Admin", "Editor"] },
     { label: "Affiliate", href: "/admin/affiliate-applications", icon: Users, roles: ["Admin", "Editor"] },
+    { label: "Đối soát Affiliate", href: "/admin/affiliate-payouts", icon: Banknote, roles: ["Admin"] },
     { label: "Liên hệ", href: "/admin/contact-requests", icon: Mail, roles: ["Admin", "Editor"] },
   ] },
   { label: "Danh mục", items: [
@@ -55,7 +56,8 @@ function isActive(pathname: string, href: string) {
 
 function canAccess(pathname: string, role: string) {
   if (role === "Admin") return true;
-  return ["/admin", "/admin/order-requests", "/admin/affiliate-applications", "/admin/contact-requests", "/admin/news-categories", "/admin/news-articles", "/admin/change-password", "/admin/profile"].includes(pathname);
+  const editorRoots = ["/admin/order-requests", "/admin/affiliate-applications", "/admin/contact-requests", "/admin/news-categories", "/admin/news-articles", "/admin/change-password", "/admin/profile"];
+  return editorRoots.some((root) => pathname === root || pathname.startsWith(`${root}/`));
 }
 
 function userInitials(user: SessionUser) {
@@ -88,6 +90,14 @@ export function AdminShell({ children }: { children: ReactNode }) {
     currentSession().then(async (session) => {
       if (!mounted) return;
       setUser(session.user);
+      if (!canAccess(pathname, session.user.role)) {
+        router.replace(session.user.role === "Editor" ? "/admin/order-requests" : "/admin");
+        return;
+      }
+      if (session.user.role !== "Admin") {
+        setNotifications([]);
+        return;
+      }
       try {
         const dashboard = await getDashboard();
         if (!mounted) return;
@@ -208,13 +218,17 @@ export function AdminShell({ children }: { children: ReactNode }) {
       <div className={cn("flex min-h-full flex-col py-5", isCollapsed ? "px-3" : "px-4 sm:px-5")}>
         <div className={cn("flex min-h-11 items-center", isCollapsed ? "justify-between lg:justify-center" : "justify-between")}>
           <div className="flex min-w-0 items-center gap-3">
-            <button type="button" aria-label="Cập nhật logo dùng chung" onClick={() => logoInputRef.current?.click()} className="group/logo relative grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-xl bg-white shadow-[0_10px_20px_-10px_rgba(15,23,42,0.45)] ring-1 ring-slate-200 transition-all hover:scale-105 dark:bg-slate-900 dark:ring-white/10">
-              <Logo className="h-9 w-9" />
-              <span className="absolute inset-0 grid place-items-center bg-slate-950/65 text-white opacity-0 transition-opacity group-hover/logo:opacity-100">{isUploadingLogo ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" /> : <UploadCloud size={15} />}</span>
-            </button>
-            <input ref={logoInputRef} className="hidden" type="file" accept="image/jpeg,image/png,image/gif,image/webp" onChange={uploadAdminLogo} />
-            <Link href="/admin" onClick={() => setMobileOpen(false)} className={cn("overflow-hidden whitespace-nowrap text-lg font-bold tracking-tight transition-all duration-300", isCollapsed ? "lg:w-0 lg:opacity-0" : "w-auto opacity-100")}>Mekong<span className="text-river-600">Node</span></Link>
-            {branding.logoUrl && !isCollapsed && <button type="button" onClick={() => void restoreDefaultLogo()} className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-river-700 dark:hover:bg-white/10 dark:hover:text-cyan-300" aria-label="Khôi phục logo MekongNode mặc định" title="Khôi phục logo mặc định"><RotateCcw size={14} /></button>}
+            {role === "Admin" ? <>
+              <button type="button" aria-label="Cập nhật logo dùng chung" onClick={() => logoInputRef.current?.click()} className="group/logo relative grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-xl bg-white shadow-[0_10px_20px_-10px_rgba(15,23,42,0.45)] ring-1 ring-slate-200 transition-all hover:scale-105 dark:bg-slate-900 dark:ring-white/10">
+                <Logo className="h-9 w-9" />
+                <span className="absolute inset-0 grid place-items-center bg-slate-950/65 text-white opacity-0 transition-opacity group-hover/logo:opacity-100">{isUploadingLogo ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" /> : <UploadCloud size={15} />}</span>
+              </button>
+              <input ref={logoInputRef} className="hidden" type="file" accept="image/jpeg,image/png,image/gif,image/webp" onChange={uploadAdminLogo} />
+            </> : <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-xl bg-white shadow-[0_10px_20px_-10px_rgba(15,23,42,0.45)] ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-white/10" aria-label="Logo MekongNode"><Logo className="h-9 w-9" /></span>}
+            <Link href={role === "Admin" ? "/admin" : "/admin/order-requests"} onClick={() => setMobileOpen(false)} className={cn("overflow-hidden whitespace-nowrap transition-all duration-300", isCollapsed ? "lg:w-0 lg:opacity-0" : "w-auto opacity-100")} aria-label="MekongNode Workspace">
+              <BrandLockup markClassName="hidden" nameClassName="text-lg" tone="adaptive" />
+            </Link>
+            {role === "Admin" && branding.logoUrl && !isCollapsed && <button type="button" onClick={() => void restoreDefaultLogo()} className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-river-700 dark:hover:bg-white/10 dark:hover:text-cyan-300" aria-label="Khôi phục logo MekongNode mặc định" title="Khôi phục logo mặc định"><RotateCcw size={14} /></button>}
           </div>
           <button type="button" className="grid h-10 w-10 place-items-center rounded-xl text-slate-500 transition-all duration-300 hover:-translate-y-0.5 hover:bg-slate-950 hover:text-white hover:shadow-lg ease-[cubic-bezier(0.16,1,0.3,1)] dark:text-white/60 dark:hover:bg-white dark:hover:text-slate-950 lg:hidden" aria-label="Đóng menu quản trị" onClick={() => setMobileOpen(false)}><PanelLeftClose size={18} /></button>
         </div>

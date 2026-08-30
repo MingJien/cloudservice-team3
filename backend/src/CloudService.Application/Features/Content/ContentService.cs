@@ -4,12 +4,13 @@ using CloudService.Application.Common.Interfaces;
 using CloudService.Application.Common.Models;
 using CloudService.Application.Features.Content.Interfaces;
 using CloudService.Application.Features.Content.Models;
+using CloudService.Application.Features.Orders.Interfaces;
 using CloudService.Domain.Entities;
 using CloudService.Domain.Enums;
 
 namespace CloudService.Application.Features.Content;
 
-public sealed class ContentService(IContentRepository repository, IUnitOfWork unitOfWork, TimeProvider timeProvider) : IContentService
+public sealed class ContentService(IContentRepository repository, IOrderRepository orderRepository, IUnitOfWork unitOfWork, TimeProvider timeProvider) : IContentService
 {
     public async Task<PagedResult<NewsCategoryItem>> GetCategoriesAsync(int pageNumber, int pageSize, bool includeInactive, CancellationToken cancellationToken)
     {
@@ -124,55 +125,74 @@ public sealed class ContentService(IContentRepository repository, IUnitOfWork un
         return Map(article);
     }
 
-    public async Task<PagedResult<TestimonialItem>> GetTestimonialsAsync(int pageNumber, int pageSize, bool includeInactive, CancellationToken cancellationToken)
+    public async Task<PagedResult<TestimonialItem>> GetTestimonialsAsync(int pageNumber, int pageSize, bool includeInactive, bool verifiedOnly, CancellationToken cancellationToken)
     {
         ValidatePaging(pageNumber, pageSize);
-        var result = await repository.GetTestimonialsAsync(pageNumber, pageSize, includeInactive, cancellationToken);
+        var result = await repository.GetTestimonialsAsync(pageNumber, pageSize, includeInactive, verifiedOnly, cancellationToken);
         return PagedResult<TestimonialItem>.Create(result.Items.Select(Map), pageNumber, pageSize, result.TotalCount);
-    }
-
-    public async Task<TestimonialItem> CreateTestimonialAsync(TestimonialRequest request, int userId, string? ipAddress, CancellationToken cancellationToken)
-    {
-        var testimonial = new Testimonial(request.CustomerName, request.Content, request.Rating, request.DisplayOrder);
-        testimonial.Update(request.CustomerName, request.CompanyName, request.Position, request.Content, request.AvatarUrl, request.LogoUrl, request.Rating, request.DisplayOrder);
-        repository.Add(testimonial);
-        await SaveAudit("Content.TestimonialCreated", nameof(Testimonial), testimonial.Id.ToString(), userId, ipAddress, cancellationToken);
-        return Map(testimonial);
-    }
-
-    public async Task<TestimonialItem> UpdateTestimonialAsync(int id, TestimonialRequest request, int userId, string? ipAddress, CancellationToken cancellationToken)
-    {
-        var testimonial = await repository.GetTestimonialAsync(id, cancellationToken) ?? throw new ResourceNotFoundException("Không tìm thấy đánh giá.");
-        testimonial.Update(request.CustomerName, request.CompanyName, request.Position, request.Content, request.AvatarUrl, request.LogoUrl, request.Rating, request.DisplayOrder);
-        await SaveAudit("Content.TestimonialUpdated", nameof(Testimonial), testimonial.Id.ToString(), userId, ipAddress, cancellationToken);
-        return Map(testimonial);
-    }
-
-    public async Task DeactivateTestimonialAsync(int id, int userId, string? ipAddress, CancellationToken cancellationToken)
-    {
-        await SetTestimonialStatusAsync(id, false, userId, ipAddress, cancellationToken);
-    }
-
-    public async Task PermanentlyDeleteTestimonialAsync(int id, int userId, string? ipAddress, CancellationToken cancellationToken)
-    {
-        var testimonial = await repository.GetTestimonialAsync(id, cancellationToken) ?? throw new ResourceNotFoundException("Không tìm thấy đánh giá.");
-        repository.Remove(testimonial);
-        await SaveAudit("Content.TestimonialHardDeleted", nameof(Testimonial), testimonial.Id.ToString(), userId, ipAddress, cancellationToken);
     }
 
     public async Task<TestimonialItem> SetTestimonialStatusAsync(int id, bool isActive, int userId, string? ipAddress, CancellationToken cancellationToken)
     {
         var testimonial = await repository.GetTestimonialAsync(id, cancellationToken) ?? throw new ResourceNotFoundException("Không tìm thấy đánh giá.");
-        if (testimonial.IsActive == isActive) return Map(testimonial);
-        testimonial.SetActive(isActive);
-        await SaveAudit(isActive ? "Content.TestimonialRestored" : "Content.TestimonialDeactivated", nameof(Testimonial), testimonial.Id.ToString(), userId, ipAddress, cancellationToken);
+        if ((isActive && testimonial.ModerationStatus == TestimonialModerationStatus.Published) ||
+            (!isActive && testimonial.ModerationStatus == TestimonialModerationStatus.Hidden))
+            return Map(testimonial);
+        if (isActive && !testimonial.IsVerifiedOrder)
+            throw new ConflictException("Không thể công bố bản ghi do quản trị tự tạo. Chỉ đánh giá từ đơn hoàn tất đã xác minh mới hợp lệ.");
+
+        if (isActive) testimonial.SetActive(true); else testimonial.Hide();
+        await SaveAudit(isActive ? "Content.TestimonialApproved" : "Content.TestimonialHidden", nameof(Testimonial), testimonial.Id.ToString(), userId, ipAddress, cancellationToken);
         return Map(testimonial);
+    }
+
+    public async Task<TestimonialSubmissionResult> SubmitTestimonialAsync(SubmitTestimonialRequest request, CancellationToken cancellationToken)
+    {
+        if (!request.ConsentToPublish)
+        {
+            throw new RequestValidationException(nameof(request.ConsentToPublish), "Bạn cần đồng ý cho phép kiểm duyệt và công bố phản hồi trước khi gửi.");
+        }
+
+        var trackingCode = request.TrackingCode.Trim().ToUpperInvariant();
+        var order = await orderRepository.GetByTrackingCodeAsync(trackingCode, cancellationToken)
+            ?? throw new ResourceNotFoundException("Không tìm thấy đơn hàng phù hợp.");
+
+        if (order.Status != OrderRequestStatus.Done)
+        {
+            throw new ConflictException("Đánh giá chỉ mở sau khi đơn hàng đã hoàn tất.");
+        }
+
+        if (await repository.TestimonialExistsForOrderAsync(order.Id, cancellationToken))
+        {
+            throw new ConflictException("Đơn hàng này đã gửi đánh giá trước đó.");
+        }
+
+        var testimonial = Testimonial.CreateFromCompletedOrder(order, request.Content, request.Rating);
+        repository.Add(testimonial);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return new TestimonialSubmissionResult(
+            testimonial.Id,
+            IsPendingModeration: true,
+            testimonial.IsFeaturedCustomer,
+            "Đánh giá đã được tiếp nhận và đang chờ quản trị viên kiểm duyệt.");
     }
 
     public async Task<ContactRequestItem> CreateContactAsync(CreateContactRequest request, CancellationToken cancellationToken)
     {
-        var contact = new ContactRequest(request.FullName, request.Email, request.Subject, request.Message);
+        ContactRequest? parent = null;
+        if (request.ParentContactRequestId is not null)
+        {
+            parent = await repository.GetContactAsync(request.ParentContactRequestId.Value, cancellationToken)
+                ?? throw new ResourceNotFoundException("Câu hỏi gốc không tồn tại.");
+            if (parent.ParentContactRequestId is not null || parent.Status != ContactRequestStatus.Replied || string.IsNullOrWhiteSpace(parent.AdminReply))
+                throw new ConflictException("Chỉ có thể hỏi tiếp từ một câu hỏi gốc đã được đội ngũ trả lời.");
+        }
+
+        var trackingCode = $"REQ-{timeProvider.GetUtcNow():yyMMdd}-{Guid.NewGuid().ToString("N")[..6].ToUpper()}";
+        var contact = new ContactRequest(trackingCode, request.FullName, request.Email, parent?.Subject ?? request.Subject, request.Message);
         contact.SetPhone(request.Phone);
+        if (parent is not null) contact.AttachToPublicQuestion(parent);
         repository.Add(contact);
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return Map(contact);
@@ -185,15 +205,22 @@ public sealed class ContentService(IContentRepository repository, IUnitOfWork un
         return PagedResult<ContactRequestItem>.Create(result.Items.Select(Map), query.PageNumber, query.PageSize, result.TotalCount);
     }
 
+    public async Task<PagedResult<PublicQnAItem>> GetPublicQnAsAsync(PublicQnAQuery query, CancellationToken cancellationToken)
+    {
+        ValidatePaging(query.PageNumber, query.PageSize);
+        var result = await repository.GetPublicQnAsAsync(query.PageNumber, query.PageSize, query.Subject, cancellationToken);
+        return PagedResult<PublicQnAItem>.Create(result.Items.Select(MapPublic), query.PageNumber, query.PageSize, result.TotalCount);
+    }
+
     public async Task<PublicContactStatusItem> GetContactStatusAsync(string trackingCode, CancellationToken cancellationToken)
     {
-        var normalized = trackingCode.Trim().ToLowerInvariant();
-        if (normalized.Length != 32 || normalized.Any(character => !Uri.IsHexDigit(character)))
+        var normalized = trackingCode.Trim().ToUpperInvariant();
+        if (normalized.Length < 10 || normalized.Length > 32)
             throw new ResourceNotFoundException("Không tìm thấy yêu cầu liên hệ.");
 
         var contact = await repository.GetContactByTrackingCodeAsync(normalized, cancellationToken)
             ?? throw new ResourceNotFoundException("Không tìm thấy yêu cầu liên hệ.");
-        return new PublicContactStatusItem(contact.TrackingCode, contact.Subject, contact.Status, contact.AdminReply, contact.CreatedAt, contact.RepliedAt);
+        return new PublicContactStatusItem(contact.TrackingCode, contact.Subject, contact.Status, contact.AdminReply, contact.RepliedByRole, contact.CreatedAt, contact.RepliedAt);
     }
 
     public async Task UpdateContactStatusAsync(long id, UpdateContactStatusRequest request, int userId, string? ipAddress, CancellationToken cancellationToken)
@@ -211,11 +238,11 @@ public sealed class ContentService(IContentRepository repository, IUnitOfWork un
         await SaveAudit("Content.ContactStatusChanged", nameof(ContactRequest), contact.Id.ToString(), userId, ipAddress, cancellationToken);
     }
 
-    public async Task ReplyToContactAsync(long id, ReplyContactRequest request, int userId, string? ipAddress, CancellationToken cancellationToken)
+    public async Task ReplyToContactAsync(long id, ReplyContactRequest request, ContactResponderRole responderRole, int userId, string? ipAddress, CancellationToken cancellationToken)
     {
         var contact = await repository.GetContactAsync(id, cancellationToken) ?? throw new ResourceNotFoundException("Không tìm thấy yêu cầu liên hệ.");
-        contact.Reply(request.Reply);
-        await SaveAudit("Content.ContactReplied", nameof(ContactRequest), contact.Id.ToString(), userId, ipAddress, cancellationToken, new { contact.Status, contact.RepliedAt });
+        contact.Reply(request.Reply, responderRole);
+        await SaveAudit("Content.ContactReplied", nameof(ContactRequest), contact.Id.ToString(), userId, ipAddress, cancellationToken, new { contact.Status, contact.RepliedAt, contact.RepliedByRole });
     }
 
     private async Task EnsureCategory(int id, CancellationToken cancellationToken)
@@ -239,6 +266,64 @@ public sealed class ContentService(IContentRepository repository, IUnitOfWork un
 
     internal static NewsCategoryItem Map(NewsCategory item) => new(item.Id, item.Name, item.Slug, item.Description, item.IsActive, item.Articles.Count(article => article.IsPublished), item.Articles.Count);
     internal static NewsArticleItem Map(NewsArticle item) => new(item.Id, item.CategoryId, item.Category?.Name ?? string.Empty, item.Category?.Slug ?? string.Empty, item.Title, item.Slug, item.Summary, item.Content, item.ThumbnailUrl, item.AuthorName, item.PublishedAt, item.IsPublished, item.IsDeleted, item.ViewCount, item.CreatedAt, item.UpdatedAt);
-    internal static TestimonialItem Map(Testimonial item) => new(item.Id, item.CustomerName, item.CompanyName, item.Position, item.Content, item.AvatarUrl, item.LogoUrl, item.Rating, item.DisplayOrder, item.IsActive);
-    internal static ContactRequestItem Map(ContactRequest item) => new(item.Id, item.TrackingCode, item.FullName, item.Email, item.Phone, item.Subject, item.Message, item.AdminReply, item.Status, item.CreatedAt, item.UpdatedAt, item.RepliedAt);
+    internal static TestimonialItem Map(Testimonial item) => new(
+        item.Id,
+        item.CustomerName,
+        item.CompanyName,
+        item.Position,
+        item.Content,
+        item.AvatarUrl,
+        item.LogoUrl,
+        item.Rating,
+        item.DisplayOrder,
+        item.IsActive,
+        item.IsVerifiedOrder,
+        item.IsFeaturedCustomer,
+        item.OrderRequest is null ? null : MaskOrderReference(item.OrderRequest.TrackingCode),
+        item.OrderRequest?.PlanNameSnapshot,
+        item.OrderRequest?.ServicePlan?.Category?.Name,
+        item.ModerationStatus,
+        item.CreatedAt);
+    internal static ContactRequestItem Map(ContactRequest item) => new(item.Id, item.TrackingCode, item.FullName, item.Email, item.Phone, item.Subject, item.Message, item.AdminReply, item.RepliedByRole, item.Status, item.CreatedAt, item.UpdatedAt, item.RepliedAt, item.ParentContactRequestId, item.Parent?.Subject, item.FollowUps.Count);
+
+    private static string MaskName(string fullName)
+    {
+        if (string.IsNullOrWhiteSpace(fullName)) return "Khách";
+        var parts = fullName.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var name = parts[^1];
+        if (name.Length <= 2) return name[0] + "***";
+        return $"{name[..2]}***{name[^1..]}";
+    }
+
+    private static string MaskOrderReference(string trackingCode)
+    {
+        // Tracking codes are sufficient to retrieve order status elsewhere in the
+        // product, so public reviews expose only a human-readable reference rather
+        // than accidentally turning a customer testimonial into a tracking token leak.
+        if (trackingCode.Length <= 5) return "Đơn đã hoàn tất";
+        var suffix = trackingCode[^Math.Min(3, trackingCode.Length)..].TrimStart('-');
+        return $"Đơn {trackingCode[..3]}-••••-{suffix}";
+    }
+
+    internal static PublicQnAItem MapPublic(ContactRequest item) => new(
+        item.Id,
+        MaskName(item.FullName),
+        item.Subject,
+        item.Message,
+        item.AdminReply ?? string.Empty,
+        item.RepliedByRole,
+        item.CreatedAt,
+        item.RepliedAt,
+        item.FollowUps
+            .Where(followUp => followUp.Status == ContactRequestStatus.Replied && !string.IsNullOrWhiteSpace(followUp.AdminReply))
+            .OrderBy(followUp => followUp.CreatedAt)
+            .Select(followUp => new PublicQnAFollowUpItem(
+                followUp.Id,
+                MaskName(followUp.FullName),
+                followUp.Message,
+                followUp.AdminReply!,
+                followUp.RepliedByRole,
+                followUp.CreatedAt,
+                followUp.RepliedAt))
+            .ToArray());
 }

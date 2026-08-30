@@ -108,7 +108,7 @@ public sealed class PricingServiceTests
         decimal value,
         IReadOnlyCollection<int>? planIds = null) =>
         new(1, type == DiscountType.Percentage ? "SAVE10" : "FIXED", "Khuyến mãi", type, value,
-            UtcNow.AddDays(-1), UtcNow.AddDays(1), null, 0, true, planIds ?? Array.Empty<int>());
+            UtcNow.AddDays(-1), UtcNow.AddDays(1), null, 0, true, null, 0m, planIds ?? Array.Empty<int>());
 
     internal sealed class FixedTimeProvider(DateTime utcNow) : TimeProvider
     {

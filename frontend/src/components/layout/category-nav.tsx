@@ -15,7 +15,7 @@ const fixedLinks: FixedLink[] = [
   { label: "Tra cứu đơn", href: "/orders/track", icon: PackageSearch },
   { label: "Blog", href: "/blog", icon: BookOpen },
   { label: "Giới thiệu", href: "/about", icon: CircleHelp },
-  { label: "Liên hệ", href: "/contact", icon: Contact },
+  { label: "Hỏi đáp", href: "/contact", icon: Contact },
 ];
 
 function pillClass(active: boolean) {
@@ -85,9 +85,8 @@ export function CategoryNav() {
         <nav
           aria-label="Danh mục nhanh"
           className="category-marquee-viewport scrollbar-hide my-2 snap-x snap-mandatory overflow-x-auto rounded-2xl border border-[#d6e6f1]/95 bg-white/88 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,.95),0_10px_34px_-28px_rgba(8,72,114,.7)] dark:border-white/[0.08] dark:bg-white/[0.035] dark:shadow-[inset_0_1px_0_rgba(255,255,255,.06)]">
-          <div className="category-marquee-track flex w-max items-center">
-            <div className="flex items-center gap-1.5 pr-1.5">{renderLinks(false)}</div>
-            <div className="category-marquee-copy flex items-center gap-1.5 pr-1.5" aria-hidden="true">{renderLinks(true)}</div>
+          <div className="flex w-max items-center gap-1.5 pr-1.5">
+            {renderLinks(false)}
           </div>
         </nav>
       </div>

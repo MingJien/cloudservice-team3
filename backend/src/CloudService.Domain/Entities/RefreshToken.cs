@@ -30,6 +30,7 @@ public sealed class RefreshToken
     public string? ReplacedByHash { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public string? CreatedByIp { get; private set; }
+    public byte[] RowVersion { get; private set; } = [];
     public AppUser User { get; private set; } = null!;
 
     public bool IsActive(DateTime utcNow) => RevokedAt is null && ExpiresAt > utcNow;

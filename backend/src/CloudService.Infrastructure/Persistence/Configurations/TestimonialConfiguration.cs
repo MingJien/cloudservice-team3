@@ -1,4 +1,5 @@
 using CloudService.Domain.Entities;
+using CloudService.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -12,6 +13,7 @@ public sealed class TestimonialConfiguration : IEntityTypeConfiguration<Testimon
         {
             table.HasCheckConstraint("CK_Testimonials_Rating", "[Rating] BETWEEN 1 AND 5");
             table.HasCheckConstraint("CK_Testimonials_DisplayOrder", "[DisplayOrder] >= 0");
+            table.HasCheckConstraint("CK_Testimonials_ModerationStatus", "[ModerationStatus] IN ('Pending', 'Published', 'Hidden')");
         });
         builder.HasKey(x => x.Id).HasName("PK_Testimonials");
         builder.Property(x => x.CustomerName).HasMaxLength(150).IsRequired();
@@ -23,6 +25,17 @@ public sealed class TestimonialConfiguration : IEntityTypeConfiguration<Testimon
         builder.Property(x => x.Rating).HasColumnType("tinyint").HasDefaultValue((byte)5);
         builder.Property(x => x.DisplayOrder).HasDefaultValue(0);
         builder.Property(x => x.IsActive).HasDefaultValue(true);
+        builder.Property(x => x.IsVerifiedOrder).HasDefaultValue(false);
+        builder.Property(x => x.IsFeaturedCustomer).HasDefaultValue(false);
+        builder.Property(x => x.ModerationStatus).HasConversion<string>().HasMaxLength(20).HasDefaultValue(TestimonialModerationStatus.Pending);
+        builder.HasOne(x => x.OrderRequest)
+            .WithOne()
+            .HasForeignKey<Testimonial>(x => x.OrderRequestId)
+            .OnDelete(DeleteBehavior.NoAction);
+        builder.HasIndex(x => x.OrderRequestId)
+            .IsUnique()
+            .HasFilter("[OrderRequestId] IS NOT NULL")
+            .HasDatabaseName("UX_Testimonials_OrderRequestId");
         builder.Property(x => x.CreatedAt).HasColumnType("datetime2(0)").HasDefaultValueSql("SYSUTCDATETIME()");
         builder.Property(x => x.UpdatedAt).HasColumnType("datetime2(0)");
     }

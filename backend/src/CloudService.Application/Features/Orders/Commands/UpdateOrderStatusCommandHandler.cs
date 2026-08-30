@@ -36,7 +36,7 @@ public sealed class UpdateOrderStatusCommandHandler(
         var order = await repository.GetByIdAsync(request.Id, cancellationToken);
         if (order is null)
             return Result.Failure(new Error("Order.NotFound", "Không tìm thấy yêu cầu đặt dịch vụ."));
-        if (!IsAllowedTransition(order.Status, request.Status))
+        if (!order.CanTransitionTo(request.Status))
             return Result.Failure(new Error("Order.InvalidTransition", "Không thể chuyển trạng thái theo quy trình nghiệp vụ."));
 
         repository.SetOriginalRowVersion(order, rowVersion);
@@ -45,23 +45,35 @@ public sealed class UpdateOrderStatusCommandHandler(
         order.ChangeStatus(request.Status, request.InternalNote);
         if (order.AffiliateAttribution is not null)
         {
-            if (request.Status == OrderRequestStatus.Done) order.AffiliateAttribution.MarkEligible(utcNow);
+            // A completed order is not withdrawable immediately. The 30-day hold
+            // protects the ledger from refunds and payment disputes.
+            if (request.Status == OrderRequestStatus.Done) order.AffiliateAttribution.ScheduleHold(utcNow.AddDays(30), utcNow);
             if (request.Status == OrderRequestStatus.Rejected) order.AffiliateAttribution.Reject(utcNow);
         }
 
         unitOfWork.AddAuditLog(new AuditLog("Order.StatusChanged", request.UserId, nameof(OrderRequest), order.Id.ToString(), oldValues: $"{{\"status\":\"{oldStatus}\"}}", newValues: $"{{\"status\":\"{request.Status}\"}}", ipAddress: request.IpAddress));
         if (oldStatus != request.Status)
-            outboxWriter.Enqueue("OrderStatusChangedV1", new OrderStatusChangedV1(Guid.NewGuid(), order.TrackingCode, oldStatus, request.Status, utcNow), utcNow);
+        {
+            outboxWriter.Enqueue(
+                "OrderStatusChangedV2",
+                new OrderStatusChangedV2(
+                    Guid.NewGuid(),
+                    order.TrackingCode,
+                    order.PlanNameSnapshot,
+                    order.BillingCycleSnapshot,
+                    order.EstimatedAmount,
+                    order.PlanPrice.Currency,
+                    order.CustomerName,
+                    oldStatus,
+                    request.Status,
+                    request.InternalNote,
+                    request.UserId,
+                    utcNow),
+                utcNow);
+        }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return Result.Success();
     }
 
-    private static bool IsAllowedTransition(OrderRequestStatus current, OrderRequestStatus next) =>
-        current == next || (current, next) switch
-        {
-            (OrderRequestStatus.New, OrderRequestStatus.Processing or OrderRequestStatus.Rejected) => true,
-            (OrderRequestStatus.Processing, OrderRequestStatus.Done or OrderRequestStatus.Rejected) => true,
-            _ => false
-        };
 }

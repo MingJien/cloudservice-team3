@@ -13,9 +13,11 @@ public interface IContentRepository
     Task<NewsArticle?> GetArticleBySlugAsync(string slug, bool includeUnpublished, CancellationToken cancellationToken);
     Task<NewsArticle?> GetArticleAsync(int id, CancellationToken cancellationToken);
     Task<bool> ArticleSlugExistsAsync(string slug, int? exceptId, CancellationToken cancellationToken);
-    Task<PagedResult<Testimonial>> GetTestimonialsAsync(int pageNumber, int pageSize, bool includeInactive, CancellationToken cancellationToken);
+    Task<PagedResult<Testimonial>> GetTestimonialsAsync(int pageNumber, int pageSize, bool includeInactive, bool verifiedOnly, CancellationToken cancellationToken);
     Task<Testimonial?> GetTestimonialAsync(int id, CancellationToken cancellationToken);
+    Task<bool> TestimonialExistsForOrderAsync(long orderRequestId, CancellationToken cancellationToken);
     Task<PagedResult<ContactRequest>> GetContactsAsync(int pageNumber, int pageSize, ContactRequestStatus? status, string? search, CancellationToken cancellationToken);
+    Task<PagedResult<ContactRequest>> GetPublicQnAsAsync(int pageNumber, int pageSize, string? subject, CancellationToken cancellationToken);
     Task<ContactRequest?> GetContactAsync(long id, CancellationToken cancellationToken);
     Task<ContactRequest?> GetContactByTrackingCodeAsync(string trackingCode, CancellationToken cancellationToken);
     void Add(NewsCategory category);
@@ -24,5 +26,4 @@ public interface IContentRepository
     void Add(ContactRequest request);
     void Remove(NewsCategory category);
     void Remove(NewsArticle article);
-    void Remove(Testimonial testimonial);
 }

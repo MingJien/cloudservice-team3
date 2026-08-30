@@ -10,7 +10,7 @@ namespace CloudService.WebApi.Controllers;
 
 [ApiController]
 [Route("api/auth")]
-public sealed class AuthController(IAuthService authService) : ControllerBase
+public sealed class AuthController(IAuthService authService, IAccessTokenRevocationStore revocationStore) : ControllerBase
 {
     [AllowAnonymous]
     [EnableRateLimiting("auth")]
@@ -34,7 +34,7 @@ public sealed class AuthController(IAuthService authService) : ControllerBase
         return Ok(await authService.RefreshAsync(request, ClientIpAddress(), cancellationToken));
     }
 
-    [Authorize(Roles = RoleNames.AdminOrEditor)]
+    [Authorize]
     [HttpPost("change-password")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
@@ -48,8 +48,32 @@ public sealed class AuthController(IAuthService authService) : ControllerBase
         }
 
         await authService.ChangePasswordAsync(userId, request, ClientIpAddress(), cancellationToken);
+        RevokeCurrentAccessToken();
+        return NoContent();
+    }
+
+    [Authorize]
+    [HttpPost("logout")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> Logout(LogoutRequest request, CancellationToken cancellationToken)
+    {
+        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+            return Unauthorized();
+
+        await authService.LogoutAsync(userId, request.RefreshToken, ClientIpAddress(), cancellationToken);
+        RevokeCurrentAccessToken();
         return NoContent();
     }
 
     private string? ClientIpAddress() => HttpContext.Connection.RemoteIpAddress?.ToString();
+
+    private void RevokeCurrentAccessToken()
+    {
+        var jwtId = User.FindFirstValue(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Jti)
+            ?? User.FindFirstValue("jti");
+        var expiry = User.FindFirstValue(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Exp)
+            ?? User.FindFirstValue("exp");
+        if (string.IsNullOrWhiteSpace(jwtId) || !long.TryParse(expiry, out var unixExpiry)) return;
+        revocationStore.Revoke(jwtId, DateTimeOffset.FromUnixTimeSeconds(unixExpiry).UtcDateTime);
+    }
 }

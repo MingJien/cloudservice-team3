@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { Container } from "./container";
-import { Logo } from "@/components/brand/logo";
+import { BrandLockup } from "@/components/brand/logo";
 import { useTheme } from "@/components/theme/theme-provider";
 
 export function PublicHeader() {
@@ -42,7 +42,6 @@ export function PublicHeader() {
 
   // Visual States Definition
   let headerBgClass = "border-b border-transparent bg-transparent";
-  let logoTextClass = "text-white";
   let searchContainerClass = "border-white/15 bg-white/8 focus-within:border-white/30 focus-within:bg-white/12";
   let searchInputClass = "text-white placeholder:text-white/50";
   let searchClearClass = "text-white/50 hover:text-white";
@@ -53,25 +52,23 @@ export function PublicHeader() {
 
   if (!isTransparent || !isDark) {
     if (isDark) {
-      headerBgClass = "glass-nav-dark shadow-sm border-b border-white/10";
-      logoTextClass = "text-white";
-      searchContainerClass = "border-white/10 bg-white/5 focus-within:border-river-500 focus-within:ring-2 focus-within:ring-river-500/20";
+      headerBgClass = "backdrop-blur-2xl bg-slate-950/70 border-b border-white/5 shadow-[0_1px_0_0_rgba(255,255,255,0.05)]";
+      searchContainerClass = "border-white/10 bg-white/5 focus-within:border-cyan-500/50 focus-within:ring-2 focus-within:ring-cyan-500/20";
       searchInputClass = "text-white placeholder:text-white/40";
       searchClearClass = "text-slate-400 hover:text-white";
-      searchSubmitClass = "text-white/50 hover:text-accent-cyan";
+      searchSubmitClass = "text-white/50 hover:text-cyan-400";
       btnClass = "border border-white/10 text-white/70 hover:bg-white/5";
-      mobileMenuBg = "bg-[#0b132b]";
+      mobileMenuBg = "bg-slate-950";
       mobileLinkClass = "text-white/70 hover:bg-white/5 hover:text-white";
     } else {
-      headerBgClass = "glass-nav-light shadow-sm border-b border-line-200";
-      logoTextClass = "text-ink-950";
-      searchContainerClass = "border-line-200 bg-white/70 focus-within:border-river-500 focus-within:ring-2 focus-within:ring-river-500/20";
-      searchInputClass = "text-ink-950 placeholder:text-slate-400";
-      searchClearClass = "text-slate-400 hover:text-ink-950";
+      headerBgClass = "backdrop-blur-2xl bg-white/70 border-b border-slate-200 shadow-[0_1px_0_0_rgba(0,0,0,0.05)]";
+      searchContainerClass = "border-slate-200 bg-white/50 focus-within:border-river-500 focus-within:ring-2 focus-within:ring-river-500/20";
+      searchInputClass = "text-slate-900 placeholder:text-slate-400";
+      searchClearClass = "text-slate-400 hover:text-slate-900";
       searchSubmitClass = "text-slate-500 hover:text-river-600";
-      btnClass = "border border-line-200 text-slate-600 hover:bg-ice-100";
+      btnClass = "border border-slate-200 text-slate-600 hover:bg-slate-50";
       mobileMenuBg = "bg-white";
-      mobileLinkClass = "text-slate-600 hover:bg-ice-100 hover:text-river-700";
+      mobileLinkClass = "text-slate-600 hover:bg-slate-50 hover:text-river-700";
     }
   }
 
@@ -85,14 +82,12 @@ export function PublicHeader() {
     <header className={`fixed top-0 z-50 w-full transition-all duration-300 ${headerBgClass}`}>
       <Container className="flex min-h-[4.25rem] items-center justify-between gap-4">
         {/* Logo + Brand */}
-        <Link href="/" className="group flex items-center gap-2.5 shrink-0">
-          <Logo className="h-9 w-9 transition-transform group-hover:scale-105" />
-          <span className="text-lg font-bold tracking-tight hidden sm:inline">
-            <span className={logoTextClass}>Mekong</span>
-            <span className="bg-gradient-to-r from-river-600 to-accent-cyan bg-clip-text text-transparent">
-              Node
-            </span>
-          </span>
+        <Link href="/" className="group shrink-0" aria-label="MekongNode - Trang chủ">
+          <BrandLockup
+            markClassName="h-10 w-10 transition-transform duration-300 group-hover:scale-[1.06]"
+            nameClassName="text-[1.05rem] sm:text-lg"
+            tone={isDark ? "on-dark" : "on-light"}
+          />
         </Link>
 
         {/* Search Bar — Center */}
@@ -205,6 +200,7 @@ export function PublicHeader() {
           >
             {([
               { icon: "⚡", label: "Bảng giá", href: "/pricing" },
+              { icon: "🎁", label: "Ưu đãi", href: "/offers" },
               { icon: "📦", label: "Tra cứu đơn hàng", href: "/orders/track" },
               ...categories.map(c => ({
                 icon: "🖥️",

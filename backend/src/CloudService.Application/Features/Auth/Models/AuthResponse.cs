@@ -7,6 +7,6 @@ public sealed record AuthResponse(
     DateTime RefreshTokenExpiresAt,
     AuthenticatedUser User);
 
-public sealed record AuthenticatedUser(int Id, string UserName, string FullName, string Email, string Role, string? AvatarUrl);
+public sealed record AuthenticatedUser(int Id, string UserName, string FullName, string Email, string Role, string? AvatarUrl, bool MustChangePassword);
 
 public sealed record AccessTokenResult(string Token, string JwtId, DateTime ExpiresAt);

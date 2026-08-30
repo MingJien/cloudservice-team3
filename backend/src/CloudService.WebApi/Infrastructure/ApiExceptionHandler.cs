@@ -15,7 +15,9 @@ public sealed class ApiExceptionHandler(
         {
             InvalidCredentialsException => (StatusCodes.Status401Unauthorized, "Không thể xác thực."),
             InvalidRefreshTokenException => (StatusCodes.Status401Unauthorized, "Không thể làm mới phiên đăng nhập."),
+            RefreshTokenRotationException => (StatusCodes.Status401Unauthorized, "Phiên đăng nhập đã được sử dụng ở một yêu cầu khác."),
             RequestValidationException => (StatusCodes.Status400BadRequest, "Dữ liệu yêu cầu không hợp lệ."),
+            AffiliateDuplicateException => (StatusCodes.Status409Conflict, "Hồ sơ Affiliate đã tồn tại."),
             ConflictException => (StatusCodes.Status409Conflict, "Yêu cầu xung đột với dữ liệu hiện tại."),
             DbUpdateConcurrencyException => (StatusCodes.Status409Conflict, "Dữ liệu vừa được người khác cập nhật."),
             ResourceNotFoundException => (StatusCodes.Status404NotFound, "Không tìm thấy dữ liệu."),
@@ -28,9 +30,12 @@ public sealed class ApiExceptionHandler(
         }
 
         httpContext.Response.StatusCode = status;
-        var problem = exception is RequestValidationException validationException
-            ? new ValidationProblemDetails(validationException.Errors.ToDictionary(item => item.Key, item => item.Value))
-            : new ProblemDetails();
+        var problem = exception switch
+        {
+            RequestValidationException validationException => new ValidationProblemDetails(validationException.Errors.ToDictionary(item => item.Key, item => item.Value)),
+            AffiliateDuplicateException duplicateException => new ValidationProblemDetails(duplicateException.Errors.ToDictionary(item => item.Key, item => item.Value)),
+            _ => new ProblemDetails()
+        };
         problem.Status = status;
         problem.Title = title;
         problem.Detail = exception is DbUpdateConcurrencyException

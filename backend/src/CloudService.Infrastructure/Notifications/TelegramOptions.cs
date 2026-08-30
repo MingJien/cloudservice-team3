@@ -9,6 +9,8 @@ public sealed class TelegramOptions
     public bool Enabled { get; init; }
     public string BotToken { get; init; } = string.Empty;
     public string ChatId { get; init; } = string.Empty;
+    [Url] public string PublicBaseUrl { get; init; } = "http://localhost:3000";
+    public bool MaskCustomerContact { get; init; } = true;
     [Range(1, 60)] public int PollIntervalSeconds { get; init; } = 5;
     [Range(1, 100)] public int BatchSize { get; init; } = 20;
     [Range(1, 30)] public int MaxAttempts { get; init; } = 8;

@@ -68,7 +68,23 @@ public sealed class OrderRequest : LongAuditableEntity
     public void ChangeStatus(OrderRequestStatus status, string? internalNote)
     {
         if (!Enum.IsDefined(status)) throw new ArgumentOutOfRangeException(nameof(status));
+        if (!CanTransitionTo(status))
+            throw new InvalidOperationException($"Không thể chuyển đơn từ {Status} sang {status}.");
         Status = status;
         InternalNote = string.IsNullOrWhiteSpace(internalNote) ? InternalNote : internalNote.Trim();
     }
+
+    /// <summary>
+    /// The order lifecycle is a domain invariant rather than a controller
+    /// convention. Keeping it here prevents a future worker, import script or
+    /// integration handler from bypassing the same state machine.
+    /// </summary>
+    public bool CanTransitionTo(OrderRequestStatus nextStatus) =>
+        Enum.IsDefined(nextStatus) &&
+        (Status == nextStatus || (Status, nextStatus) switch
+        {
+            (OrderRequestStatus.New, OrderRequestStatus.Processing or OrderRequestStatus.Rejected) => true,
+            (OrderRequestStatus.Processing, OrderRequestStatus.Done or OrderRequestStatus.Rejected) => true,
+            _ => false
+        });
 }

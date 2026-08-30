@@ -3,6 +3,10 @@ import { NextResponse } from "next/server";
 
 const accessCookieName = "mekongnode_access";
 const refreshCookieName = "mekongnode_refresh";
+// Next.js can render several protected server components in parallel. A
+// per-refresh-token promise prevents those requests from racing one-time-use
+// rotation; the API rowversion remains the authoritative cross-instance guard.
+const refreshInFlight = new Map<string, Promise<BackendAuthResponse | null>>();
 
 export interface SessionUser {
   id: number;
@@ -11,6 +15,7 @@ export interface SessionUser {
   email: string;
   role: string;
   avatarUrl?: string;
+  mustChangePassword: boolean;
 }
 
 export interface BackendAuthResponse {
@@ -44,6 +49,11 @@ export function clearSessionCookies(response: NextResponse) {
   response.cookies.set(refreshCookieName, "", { ...baseCookieOptions(), maxAge: 0 });
 }
 
+export async function getSessionRefreshToken(): Promise<string | null> {
+  const store = await cookies();
+  return store.get(refreshCookieName)?.value ?? null;
+}
+
 export async function getValidAccessToken(): Promise<{ accessToken: string; refreshedAuth?: BackendAuthResponse } | null> {
   const store = await cookies();
   const accessToken = store.get(accessCookieName)?.value;
@@ -51,13 +61,26 @@ export async function getValidAccessToken(): Promise<{ accessToken: string; refr
 
   const refreshToken = store.get(refreshCookieName)?.value;
   if (!refreshToken) return null;
-  const response = await callBackend("/auth/refresh", {
-    method: "POST",
-    body: JSON.stringify({ refreshToken }),
-  });
-  if (!response.ok) return null;
-
-  const auth = await response.json() as BackendAuthResponse;
+  let refreshPromise = refreshInFlight.get(refreshToken);
+  if (!refreshPromise) {
+    refreshPromise = (async () => {
+      const response = await callBackend("/auth/refresh", {
+        method: "POST",
+        body: JSON.stringify({ refreshToken }),
+      });
+      if (!response.ok) return null;
+      return await response.json() as BackendAuthResponse;
+    })();
+    refreshInFlight.set(refreshToken, refreshPromise);
+    const clearRefreshLock = () => {
+      if (refreshInFlight.get(refreshToken) === refreshPromise) refreshInFlight.delete(refreshToken);
+    };
+    // Attach both branches explicitly; `finally()` would create a second,
+    // unobserved rejected promise when the backend is unavailable.
+    void refreshPromise.then(clearRefreshLock, clearRefreshLock);
+  }
+  const auth = await refreshPromise;
+  if (!auth) return null;
   return { accessToken: auth.accessToken, refreshedAuth: auth };
 }
 
@@ -76,6 +99,7 @@ export function sessionFromAccessToken(accessToken: string): SessionUser | null 
       fullName: userName,
       email: String(payload.email ?? ""),
       role: String(payload.role ?? payload[roleClaim] ?? ""),
+      mustChangePassword: String(payload.must_change_password ?? "false") === "true",
     };
   } catch {
     return null;
@@ -83,10 +107,20 @@ export function sessionFromAccessToken(accessToken: string): SessionUser | null 
 }
 
 export async function forwardBackendResponse(response: Response) {
-  const body = response.status === 204 ? null : await response.text();
+  const contentType = response.headers.get("Content-Type") ?? "application/problem+json";
+  // Excel exports and uploaded assets are binary. Reading every upstream
+  // response as UTF-8 text silently corrupts those files at the BFF boundary.
+  const body = response.status === 204
+    ? null
+    : contentType.includes("json") || contentType.startsWith("text/")
+      ? await response.text()
+      : await response.arrayBuffer();
+  const forwardedHeaders = new Headers({ "Content-Type": contentType });
+  const contentDisposition = response.headers.get("Content-Disposition");
+  if (contentDisposition) forwardedHeaders.set("Content-Disposition", contentDisposition);
   return new NextResponse(body, {
     status: response.status,
-    headers: { "Content-Type": response.headers.get("Content-Type") ?? "application/problem+json" },
+    headers: forwardedHeaders,
   });
 }
 
