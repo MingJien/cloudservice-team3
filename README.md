@@ -1,60 +1,150 @@
-# CloudService Team 3
+# CloudService Team 3 — MekongNode
 
-Dự án CloudService theo mô hình Clean Architecture + Next.js.
+[![Release gate](https://github.com/MingJien/cloudservice-team3/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/MingJien/cloudservice-team3/actions/workflows/main.yml)
 
-## Branch policy
+> Nền tảng SaaS mô phỏng quy trình tư vấn, đặt dịch vụ và vận hành cloud. Dự án được xây dựng theo Clean Architecture với .NET 10, Next.js, SQL Server, Docker Compose và quy trình kiểm thử tự động.
 
-- `main`: stable release
-- `develop`: integration branch
-- `feature/chien-core-landing`: architecture, core backend/frontend setup, landing page integration
-- `feature/tan-admin-pricing`: admin and pricing management
-- `feature/ly-orders-affiliate`: orders, affiliates, dashboard
-- `feature/thinh-landing`: public landing/content screens
+[Repository](https://github.com/MingJien/cloudservice-team3) · [Kiến trúc & đánh giá cuối](docs/18-final-architecture-review.md) · [Hướng dẫn deploy](DEPLOYMENT_GUIDE.md)
 
-## Team ownership
+## Tổng quan
 
-- Chiến: core backend/frontend foundation, database, auth, shared layout, landing, final integration
-- Tấn: admin, pricing, plans, promotions
-- Ly: orders, affiliate, dashboard
-- Thinh: landing/public content
+CloudService cung cấp website public và cổng quản trị cho các dịch vụ VPS, hosting, domain, email, SSL và hạ tầng liên quan. Mục tiêu của đồ án không chỉ là dựng giao diện đặt dịch vụ, mà là thể hiện một hệ thống có ranh giới kiến trúc rõ ràng, bảo vệ dữ liệu đầu vào và có thể chạy lại nhất quán bằng Docker.
 
-## Project structure
+| Năng lực | Điểm thể hiện |
+|---|---|
+| Kiến trúc | Clean Architecture 4 lớp: Domain, Application, Infrastructure, WebApi. |
+| Nghiệp vụ | Báo giá, promotion, order tracking, affiliate, blog, hỏi–đáp, đánh giá sau đơn hoàn tất và quản trị nội dung. |
+| Bảo mật | JWT + refresh-token rotation, RBAC, BFF HttpOnly cookie, rate limit, idempotency, audit log và optimistic concurrency. |
+| Vận hành | Docker Compose, health check, transactional outbox Telegram, export Excel background job và GitHub Actions. |
+| Chất lượng | xUnit/Moq/FluentAssertions, SQL Server Testcontainers, Jest/RTL, Playwright và k6. |
+
+## Kiến trúc hệ thống
+
+```mermaid
+flowchart LR
+    U[Người dùng / Affiliate / Admin] --> F[Next.js 16\nPublic site + Admin BFF]
+    F --> A[ASP.NET Core .NET 10 Web API]
+    A --> APP[Application\nUse cases + CQRS]
+    APP --> D[Domain\nInvariants + business rules]
+    APP --> I[Infrastructure\nEF Core, JWT, Outbox, Repositories]
+    I --> DB[(SQL Server)]
+    I --> T[Telegram HTTP API]
+```
+
+## Chức năng chính
+
+- Public website: catalog, chi tiết gói, pricing/compare/advisor, promotion, blog, liên hệ và đăng ký Affiliate.
+- Order: báo giá được backend xác thực, chống gửi trùng bằng idempotency key, mã tra cứu an toàn và quy trình trạng thái có audit.
+- Admin: quản lý catalog, giá, khuyến mãi, đơn, nội dung, Affiliate, payout, export Excel và audit log.
+- Affiliate Portal: referral last-click, commission ledger, tier, đối soát payout và dashboard cá nhân.
+- Community: hỏi–đáp có phản hồi theo phân quyền; đánh giá chỉ phát sinh từ đơn đã hoàn tất, sau đó Admin chỉ có thể duyệt hoặc ẩn — không tự tạo/sửa đánh giá khách hàng.
+
+## Công nghệ
+
+| Layer | Stack |
+|---|---|
+| Backend | .NET 10, ASP.NET Core Web API, EF Core, MediatR, SQL Server |
+| Frontend | Next.js 16, React, TypeScript strict, Tailwind CSS |
+| Security | JWT, refresh-token rotation, PBKDF2, RBAC, rate limiting, HMAC |
+| Quality | xUnit, Moq, FluentAssertions, Testcontainers, Jest, React Testing Library, Playwright, k6 |
+| Delivery | Docker Compose, Nginx, GitHub Actions, Cloudflare Quick Tunnel demo |
+
+## Cấu trúc repository
 
 ```text
 cloudservice-team3/
-├─ .github/
-│  └─ workflows/
-├─ backend/
-│  ├─ CloudService.sln
-│  ├─ Directory.Build.props
-│  ├─ src/
-│  └─ tests/
-├─ database/
-├─ docs/
-├─ frontend/
-│  ├─ package.json
-│  ├─ next.config.ts
-│  ├─ tsconfig.json
-│  ├─ eslint.config.mjs
-│  └─ src/
-├─ .gitignore
-├─ docker-compose.yml
+├─ backend/                 # .NET 10 solution, 4 architecture layers và tests
+├─ frontend/                # Next.js public site, admin console và BFF routes
+├─ database/                # schema/reference data phục vụ tài liệu
+├─ docs/                    # API contract, threat model, runbook và evaluator guide
+├─ scripts/                 # deploy, secret check và load test k6
+├─ nginx/                   # reverse proxy cho profile demo/production
+├─ .github/workflows/       # CI release gate
+├─ docker-compose.yml       # môi trường local
+├─ docker-compose.prod.yml  # profile bàn giao qua Nginx
 ├─ Dockerfile.api
-├─ Dockerfile.frontend
-├─ README.md
-└─ .env.example
+└─ Dockerfile.frontend
 ```
 
-## Local run
+## Chạy nhanh với Docker
 
-```bash
+Yêu cầu: Docker Desktop đang chạy.
+
+```powershell
+Copy-Item .env.example .env
 docker compose up --build
 ```
 
-## Git workflow
+Sau khi container sẵn sàng:
 
-1. Create branch from `develop`
-2. Commit small, meaningful changes
-3. Open PR into `develop`
-4. Merge `develop` into `main` only after stable release
+| Thành phần | Địa chỉ |
+|---|---|
+| Website | http://localhost:3000 |
+| Swagger | http://localhost:8080/swagger |
+| API health | http://localhost:8080/health |
+| API readiness + SQL Server | http://localhost:8080/health/ready |
 
+Tài khoản demo chỉ dùng trong môi trường local: `admin / ad123` và Affiliate Bạc `affb / affb123`. Không dùng hoặc commit các credential này cho môi trường thật.
+
+### Demo HTTPS từ xa
+
+Để dựng đầy đủ SQL Server + API + frontend + Nginx và tạo URL HTTPS tạm thời cho buổi demo:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start-demo-deploy.ps1
+```
+
+Cloudflare Quick Tunnel chỉ phù hợp để trình diễn: URL sẽ đổi sau lần chạy mới và website chỉ hoạt động khi máy chủ đang bật. Xem [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) trước khi triển khai VPS/domain thật.
+
+## Kiểm thử và CI
+
+```powershell
+dotnet restore backend/CloudService.sln
+dotnet build backend/CloudService.sln -c Release --no-restore
+dotnet test backend/CloudService.sln -c Release --no-build
+
+cd frontend
+npm ci
+npm run lint
+npm run typecheck
+npm run test:coverage
+npm run build
+```
+
+GitHub Actions chạy .NET build/test, SQL Server Testcontainers, frontend quality gate, Docker Compose smoke test, Playwright E2E và k6. Kết quả CI xanh là bằng chứng release; không thay thế bằng nhận định chủ quan.
+
+## Branch policy
+
+| Nhánh | Mục đích |
+|---|---|
+| `main` | Bản tích hợp ổn định, dùng để nộp và trình diễn. |
+| `develop` | Nhánh tích hợp trước release. |
+| `feature/chien-core-landing` | Kiến trúc, core backend/frontend, database, auth và landing integration. |
+| `feature/tan-admin-pricing` | Admin console, pricing, plans và promotions. |
+| `feature/ly-orders-affiliate` | Orders, affiliate, dashboard và workflow liên quan. |
+| `feature/thinh-landing` | Public landing và content screens. |
+
+Quy trình: tạo feature branch từ `develop` → commit nhỏ, có ý nghĩa → pull request vào `develop` → chỉ merge `develop` vào `main` khi release gate đạt.
+
+## Team ownership
+
+| Thành viên | Phạm vi phụ trách |
+|---|---|
+| Chiến | Nền tảng backend/frontend, database, authentication, shared layout, landing và tích hợp cuối. |
+| Tấn | Admin, pricing, service plans và promotions. |
+| Ly | Orders, affiliate và dashboard. |
+| Thịnh | Landing page và public content. |
+
+Phân công là phạm vi kỹ thuật; bằng chứng đóng góp cuối cùng cần dựa trên commit, pull request và review thực tế trong GitHub.
+
+## Tài liệu quan trọng
+
+- [Evaluator guide](docs/19-evaluator-guide.md): điểm bắt đầu dành cho giảng viên.
+- [API contract](docs/03-api-contract-v1.md): endpoint, request/response và quy ước API.
+- [Security threat model & QA](docs/09-security-threat-model-and-qa.md): rủi ro, biện pháp kiểm soát và checklist.
+- [Final architecture review](docs/18-final-architecture-review.md): đánh giá bằng chứng, giới hạn và release gate.
+- [Deployment guide](DEPLOYMENT_GUIDE.md): Docker, Cloudflare Quick Tunnel và định hướng VPS.
+
+## Giới hạn minh bạch
+
+Dự án mô phỏng luồng tư vấn, đặt dịch vụ và quản trị cloud. Không xử lý thanh toán thật, provisioning VPS/domain thật, bank webhook hoặc email/SMS production. Các số liệu vận hành chỉ được công bố khi có nguồn xác minh.

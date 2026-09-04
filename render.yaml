@@ -1,0 +1,35 @@
+services:
+  - type: web
+    name: cloud-service-api
+    env: docker
+    dockerfilePath: Dockerfile.api
+    plan: free
+    region: singapore # or ohio
+    healthCheckPath: /health/ready
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: PORT
+        value: "8080"
+      - key: ConnectionStrings__DefaultConnection
+        sync: false # User must provide this in the Render dashboard
+      - key: Jwt__Secret
+        sync: false # User must provide this
+      - key: Database__ApplyMigrationsOnStartup
+        value: "true"
+      - key: Seed__DemoUsers__Enabled
+        value: "false"
+      - key: Seed__DemoContent__Enabled
+        value: "false"
+      - key: Telegram__Enabled
+        value: "true"
+      - key: Telegram__BotToken
+        sync: false # User must provide this
+      - key: Telegram__ChatId
+        sync: false # User must provide this
+      - key: Telegram__PublicBaseUrl
+        sync: false # Public frontend URL used in Telegram links
+      - key: PublicBaseUrl
+        sync: false # Public frontend URL used by the API
+      - key: Cors__AllowedOrigins__0
+        sync: false # e.g. https://your-frontend.vercel.app
