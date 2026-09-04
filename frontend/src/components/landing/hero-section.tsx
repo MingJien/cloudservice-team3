@@ -74,9 +74,7 @@ export function HeroSection() {
         <div className="hero-vignette absolute inset-0" />
       </div>
 
-      {/* ── Single-column centered hero flow ── */}
-      <div className="relative z-10 mx-auto w-full max-w-7xl px-5 sm:px-6 lg:px-8">
-        {/* Copy block — left-aligned, max-width constrained */}
+      <div className="relative z-10 mx-auto grid w-full max-w-7xl gap-14 px-5 sm:px-6 lg:grid-cols-[minmax(0,1.06fr)_minmax(390px,.8fr)] lg:items-center lg:gap-12 lg:px-8">
         <div className="hero-copy-enter max-w-3xl">
           <HeroCopyCarousel />
 
@@ -108,8 +106,7 @@ export function HeroSection() {
           </div>
         </div>
 
-        {/* Telemetry card — centered focal piece between copy and KPI strip */}
-        <div className="hero-telemetry-enter relative mx-auto mt-12 w-full max-w-lg sm:mt-14">
+        <div className="hero-telemetry-enter relative mx-auto w-full max-w-[31.5rem] lg:mx-0 lg:justify-self-end">
           <div className="hero-telemetry-glow absolute -inset-8" aria-hidden="true" />
           <div className="hero-telemetry-frame relative">
             <aside className="hero-telemetry-board relative overflow-hidden rounded-[23px] border border-white/[0.16] p-4 backdrop-blur-2xl sm:p-5" aria-label="Số liệu telemetry mô phỏng">
@@ -120,7 +117,7 @@ export function HeroSection() {
                     Live data stream
                   </span>
                 </div>
-                <p className="mt-4 flex flex-wrap items-end justify-center gap-x-2 gap-y-1 font-mono leading-none tabular-nums">
+                <p className="mt-4 flex flex-wrap items-end gap-x-2 gap-y-1 font-mono leading-none tabular-nums">
                   <AnimatedCounter
                     value={14_850_290}
                     suffix="+"
@@ -138,8 +135,7 @@ export function HeroSection() {
         </div>
       </div>
 
-      {/* KPI strip — immediately below centered telemetry */}
-      <div className="hero-kpi-strip relative z-10 mx-auto mt-10 w-[calc(100%-2.5rem)] max-w-7xl rounded-[1.75rem] border px-5 py-8 sm:mt-12 sm:w-[calc(100%-3rem)] sm:px-8 lg:px-10 lg:py-10">
+      <div className="hero-kpi-strip relative z-10 mx-auto mt-14 w-[calc(100%-2.5rem)] max-w-7xl rounded-[1.75rem] border px-5 py-8 sm:w-[calc(100%-3rem)] sm:px-8 lg:mt-16 lg:px-10 lg:py-10">
         <div className="mb-6 flex flex-col justify-between gap-3 border-b border-[#d9e9f2] pb-5 sm:flex-row sm:items-center dark:border-white/[0.08]">
           <div>
             <p className="text-[0.66rem] font-bold uppercase tracking-[0.18em] text-[#0873b8] dark:text-cyan-300">Trust &amp; scale · bản trình diễn</p>

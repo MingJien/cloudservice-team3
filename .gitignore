@@ -51,6 +51,8 @@ build/
 
 coverage/
 *.tsbuildinfo
+frontend/test-results/
+frontend/playwright-report/
 
 # =========================
 # LOGS
