@@ -1,27 +1,95 @@
-# IDE / OS
-.vscode/
-.vs/
-.idea/
-.DS_Store
-Thumbs.db
-
-# Build outputs
-bin/
-obj/
-.next/
-out/
-coverage/
-
-# Docker / env
+# =========================
+# SECRETS / ENV
+# =========================
 .env
 .env.*
 !.env.example
 
-# Node
+secrets.json
+appsettings.Local.json
+appsettings.*.Local.json
+appsettings.Development.json
+appsettings.Development.local.json
+
+*.pfx
+*.p12
+*.pem
+*.key
+
+# =========================
+# .NET
+# =========================
+bin/
+obj/
+**/bin/
+**/obj/
+
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+.vs/
+TestResults/
+
+# =========================
+# NODE / NEXT / REACT
+# =========================
 node_modules/
+**/node_modules/
 
-# Logs
+.next/
+**/.next/
+out/
+**/out/
+dist/
+build/
+
+.turbo/
+**/.turbo/
+.vercel/
+
+coverage/
+*.tsbuildinfo
+
+# =========================
+# LOGS
+# =========================
 *.log
+logs/
 
-# Git
-*.orig
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# =========================
+# IDE
+# =========================
+.idea/
+
+# VS Code local settings
+.vscode/
+
+# =========================
+# OS
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# TEMP
+# =========================
+.docker-session/
+tmp/
+temp/
+*.tmp
+*.cache
+
+# =========================
+# Generated uploads / QR / exports
+# =========================
+uploads/
+generated/
+exports/
+backend/src/CloudService.WebApi/wwwroot/avatars/

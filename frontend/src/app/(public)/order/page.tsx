@@ -1,0 +1,2 @@
+import { OrderForm } from "./order-form";
+export default async function OrderPage({ searchParams }: { searchParams: Promise<{ planId?: string; promotionCode?: string }> }) { const query = await searchParams; const planId = query.planId && /^\d+$/.test(query.planId) ? Number(query.planId) : undefined; const promotionCode = query.promotionCode && /^[A-Za-z0-9_-]{1,50}$/.test(query.promotionCode) ? query.promotionCode.toUpperCase() : undefined; return <OrderForm initialPlanId={planId} initialPromotionCode={promotionCode} />; }
