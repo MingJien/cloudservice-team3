@@ -37,12 +37,12 @@ services:
       Seed__DemoUsers__Editor__Password: ${SEED_EDITOR_PASSWORD:-Editor-Local-Password-2026!}
       Seed__DemoUsers__ResetPasswordOnStartup: ${SEED_DEMO_USERS_RESET_PASSWORD_ON_STARTUP:-true}
       Seed__DemoContent__Enabled: ${SEED_DEMO_CONTENT_ENABLED:-true}
-      Cors__AllowedOrigins__0: ${PUBLIC_BASE_URL:-http://localhost:3000}
-      PublicBaseUrl: ${PUBLIC_BASE_URL:-http://localhost:3000}
+      Cors__AllowedOrigins__0: ${DOCKER_PUBLIC_BASE_URL:-http://localhost:3000}
+      PublicBaseUrl: ${DOCKER_PUBLIC_BASE_URL:-http://localhost:3000}
       Telegram__Enabled: ${TELEGRAM_ENABLED:-false}
       Telegram__BotToken: ${TELEGRAM_BOT_TOKEN:-}
       Telegram__ChatId: ${TELEGRAM_CHAT_ID:-}
-      Telegram__PublicBaseUrl: ${PUBLIC_BASE_URL:-http://localhost:3000}
+      Telegram__PublicBaseUrl: ${DOCKER_PUBLIC_BASE_URL:-http://localhost:3000}
       Telegram__MaskCustomerContact: ${TELEGRAM_MASK_CUSTOMER_CONTACT:-true}
       Smtp__Enabled: ${SMTP_ENABLED:-false}
       Smtp__Host: ${SMTP_HOST:-smtp.example.com}
@@ -52,7 +52,7 @@ services:
       Smtp__Password: ${SMTP_PASSWORD:-}
       Smtp__FromEmail: ${SMTP_FROM_EMAIL:-no-reply@mekongnode.local}
       Smtp__FromName: ${SMTP_FROM_NAME:-MekongNode Partner Network}
-      Smtp__PortalUrl: ${SMTP_PORTAL_URL:-http://localhost:3000/affiliate/login}
+      Smtp__PortalUrl: ${DOCKER_SMTP_PORTAL_URL:-http://localhost:3000/affiliate/login}
     ports:
       - "8080:8080"
     volumes:
@@ -73,12 +73,17 @@ services:
       context: .
       dockerfile: Dockerfile.frontend
       args:
-        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8080/api}
+        # This profile exposes the Next.js server directly on :3000, without
+        # Nginx. Use a host-reachable API URL instead of the production /api
+        # reverse-proxy path so browser requests work in local Compose and CI.
+        NEXT_PUBLIC_API_BASE_URL: ${DOCKER_NEXT_PUBLIC_API_BASE_URL:-http://localhost:8080/api}
         NEXT_PUBLIC_DEMO_MODE: ${NEXT_PUBLIC_DEMO_MODE:-true}
     environment:
       NODE_ENV: production
       BACKEND_API_BASE_URL: http://api:8080/api
-      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      # The local profile is served over HTTP on localhost. This deliberately
+      # does not inherit a production HTTPS-cookie setting from .env.
+      SESSION_COOKIE_SECURE: ${DOCKER_SESSION_COOKIE_SECURE:-false}
     ports:
       - "3000:3000"
     depends_on:

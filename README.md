@@ -75,6 +75,17 @@ Copy-Item .env.example .env
 docker compose up --build
 ```
 
+`docker-compose.yml` mở frontend trực tiếp tại cổng 3000 và mặc định gọi API
+ở cổng 8080. Nếu API local chạy ở host hoặc cổng khác, đặt
+`DOCKER_NEXT_PUBLIC_API_BASE_URL` trong `.env`; biến
+`NEXT_PUBLIC_API_BASE_URL=/api` được dành cho profile production chạy qua
+Nginx.
+
+Các biến `DOCKER_NEXT_PUBLIC_API_BASE_URL`, `DOCKER_PUBLIC_BASE_URL` và
+`DOCKER_SESSION_COOKIE_SECURE` chỉ áp dụng cho profile local; nhờ vậy một
+`.env` có cấu hình HTTPS production không làm hỏng CORS hoặc phiên đăng nhập
+khi chạy thử ở `http://localhost:3000`.
+
 Sau khi container sẵn sàng:
 
 | Thành phần | Địa chỉ |
