@@ -132,7 +132,7 @@ Sau khi toàn bộ release gate thành công trên `main`, workflow publish hai 
 | `feature/ly-orders-affiliate` | Orders, affiliate, dashboard và workflow liên quan. |
 | `feature/thinh-landing` | Public landing và content screens. |
 
-Quy trình đề xuất: tạo feature branch từ `develop` → commit nhỏ, có ý nghĩa → pull request vào `develop` → chỉ merge `develop` vào `main` khi release gate đạt. GitHub `main` cần bật branch protection để bắt buộc pull request và release gate xanh; nếu chưa bật, GitHub vẫn cho phép push trực tiếp.
+Quy trình: tạo feature branch từ `develop` → commit nhỏ, có ý nghĩa → pull request vào `develop`; khi release gate xanh, mở pull request từ `develop` vào `main`. PR vào `main` cần ít nhất một review độc lập và bốn check của release gate xanh. Nhánh `main` đã bật protection: không cho push trực tiếp, force-push hoặc xóa nhánh; review lỗi thời bị hủy và hội thoại phải được giải quyết trước khi merge.
 
 ## Team ownership
 
