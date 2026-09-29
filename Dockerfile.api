@@ -1,7 +1,12 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
+COPY backend/Directory.Build.props ./backend/Directory.Build.props
+COPY backend/src/CloudService.Domain/CloudService.Domain.csproj ./backend/src/CloudService.Domain/
+COPY backend/src/CloudService.Application/CloudService.Application.csproj ./backend/src/CloudService.Application/
+COPY backend/src/CloudService.Infrastructure/CloudService.Infrastructure.csproj ./backend/src/CloudService.Infrastructure/
+COPY backend/src/CloudService.WebApi/CloudService.WebApi.csproj ./backend/src/CloudService.WebApi/
+RUN dotnet restore backend/src/CloudService.WebApi/CloudService.WebApi.csproj
 COPY backend/ ./backend/
-RUN dotnet restore backend/CloudService.sln
 RUN dotnet publish backend/src/CloudService.WebApi/CloudService.WebApi.csproj -c Release -o /app/publish --no-restore
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
