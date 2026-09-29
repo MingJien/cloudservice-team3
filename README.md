@@ -56,7 +56,6 @@ cloudservice-team3/
 ├─ backend/                 # .NET 10 solution, 4 architecture layers và tests
 ├─ frontend/                # Next.js public site, admin console và BFF routes
 ├─ database/                # schema/reference data phục vụ tài liệu
-├─ docs/                    # API contract, demo acceptance và security QA
 ├─ scripts/                 # deploy, secret check và load test k6
 ├─ nginx/                   # reverse proxy cho profile demo/production
 ├─ .github/workflows/       # CI release gate
@@ -147,11 +146,6 @@ Quy trình: tạo feature branch từ `develop` → commit nhỏ, có ý nghĩa 
 | Thịnh | Landing page và public content. |
 
 Phân công là phạm vi kỹ thuật; bằng chứng đóng góp cuối cùng cần dựa trên commit, pull request và review thực tế trong GitHub.
-
-## Tài liệu tham khảo
-
-- [API contract](docs/03-api-contract-v1.md): endpoint, request/response và quy ước API.
-- [Security threat model & QA](docs/09-security-threat-model-and-qa.md): rủi ro, biện pháp kiểm soát và checklist.
 
 ## Giới hạn minh bạch
 
