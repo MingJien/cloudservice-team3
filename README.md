@@ -4,7 +4,7 @@
 
 > Nền tảng SaaS mô phỏng quy trình tư vấn, đặt dịch vụ và vận hành cloud. Dự án được xây dựng theo Clean Architecture với .NET 10, Next.js, SQL Server, Docker Compose và quy trình kiểm thử tự động.
 
-[Repository](https://github.com/MingJien/cloudservice-team3) · [Kiến trúc & đánh giá cuối](docs/18-final-architecture-review.md) · [Hướng dẫn deploy](DEPLOYMENT_GUIDE.md)
+[Repository](https://github.com/MingJien/cloudservice-team3)
 
 ## Tổng quan
 
@@ -56,7 +56,7 @@ cloudservice-team3/
 ├─ backend/                 # .NET 10 solution, 4 architecture layers và tests
 ├─ frontend/                # Next.js public site, admin console và BFF routes
 ├─ database/                # schema/reference data phục vụ tài liệu
-├─ docs/                    # API contract, threat model, runbook và evaluator guide
+├─ docs/                    # API contract, demo acceptance và security QA
 ├─ scripts/                 # deploy, secret check và load test k6
 ├─ nginx/                   # reverse proxy cho profile demo/production
 ├─ .github/workflows/       # CI release gate
@@ -105,7 +105,7 @@ Tài khoản demo chỉ dùng trong môi trường local: `admin / ad123` và Af
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start-demo-deploy.ps1
 ```
 
-Cloudflare Quick Tunnel chỉ phù hợp để trình diễn: URL sẽ đổi sau lần chạy mới và website chỉ hoạt động khi máy chủ đang bật. Xem [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) trước khi triển khai VPS/domain thật.
+Cloudflare Quick Tunnel chỉ phù hợp để trình diễn: URL sẽ đổi sau lần chạy mới và website chỉ hoạt động khi máy chủ đang bật.
 
 ## Kiểm thử và CI
 
@@ -148,13 +148,10 @@ Quy trình: tạo feature branch từ `develop` → commit nhỏ, có ý nghĩa 
 
 Phân công là phạm vi kỹ thuật; bằng chứng đóng góp cuối cùng cần dựa trên commit, pull request và review thực tế trong GitHub.
 
-## Tài liệu quan trọng
+## Tài liệu tham khảo
 
-- [Evaluator guide](docs/19-evaluator-guide.md): điểm bắt đầu dành cho giảng viên.
 - [API contract](docs/03-api-contract-v1.md): endpoint, request/response và quy ước API.
 - [Security threat model & QA](docs/09-security-threat-model-and-qa.md): rủi ro, biện pháp kiểm soát và checklist.
-- [Final architecture review](docs/18-final-architecture-review.md): đánh giá bằng chứng, giới hạn và release gate.
-- [Deployment guide](DEPLOYMENT_GUIDE.md): Docker, Cloudflare Quick Tunnel và định hướng VPS.
 
 ## Giới hạn minh bạch
 
