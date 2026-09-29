@@ -96,15 +96,6 @@ Sau khi container sẵn sàng:
 
 Tài khoản demo chỉ dùng trong môi trường local: `admin / ad123` và Affiliate Bạc `affb / affb123`. Không dùng hoặc commit các credential này cho môi trường thật.
 
-### Demo HTTPS từ xa
-
-Để dựng đầy đủ SQL Server + API + frontend + Nginx và tạo URL HTTPS tạm thời cho buổi demo:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start-demo-deploy.ps1
-```
-
-Cloudflare Quick Tunnel chỉ phù hợp để trình diễn: URL sẽ đổi sau lần chạy mới và website chỉ hoạt động khi máy chủ đang bật.
 
 ## Kiểm thử và CI
 
@@ -121,7 +112,7 @@ npm run test:coverage
 npm run build
 ```
 
-GitHub Actions chạy .NET build/test, SQL Server Testcontainers, frontend quality gate, Docker Compose smoke test, Playwright E2E và k6. Kết quả CI xanh là bằng chứng release; không thay thế bằng nhận định chủ quan.
+GitHub Actions chạy .NET build/test, SQL Server Testcontainers, frontend quality gate, Docker Compose smoke test, Playwright E2E và k6. Kết quả CI xanh là bằng chứng release.
 
 ## Branch policy
 
@@ -138,15 +129,10 @@ Quy trình: tạo feature branch từ `develop` → commit nhỏ, có ý nghĩa 
 
 ## Team ownership
 
-| Thành viên | Phạm vi phụ trách |
+| Thành viên | Phạm vi đã thực hiện cuối |
 |---|---|
-| Chiến | Nền tảng backend/frontend, database, authentication, shared layout, landing và tích hợp cuối. |
+| Chiến | Nền tảng, database, authentication, landing; hỗ trợ admin, affilate và tích hợp cuối. |
 | Tấn | Admin, pricing, service plans và promotions. |
 | Ly | Orders, affiliate và dashboard. |
-| Thịnh | Landing page và public content. |
+| Thịnh | phụ landing page và public content. |
 
-Phân công là phạm vi kỹ thuật; bằng chứng đóng góp cuối cùng cần dựa trên commit, pull request và review thực tế trong GitHub.
-
-## Giới hạn minh bạch
-
-Dự án mô phỏng luồng tư vấn, đặt dịch vụ và quản trị cloud. Không xử lý thanh toán thật, provisioning VPS/domain thật, bank webhook hoặc email/SMS production. Các số liệu vận hành chỉ được công bố khi có nguồn xác minh.
