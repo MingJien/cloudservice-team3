@@ -2,7 +2,7 @@ name: cloudservice-prod
 
 services:
   db:
-    image: mcr.microsoft.com/mssql/server:2022-latest
+    image: mcr.microsoft.com/mssql/server:2022-CU23-ubuntu-22.04
     environment:
       ACCEPT_EULA: "Y"
       MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD in .env before starting production Compose}
@@ -72,7 +72,7 @@ services:
 
   # Nginx Reverse Proxy: Hứng toàn bộ traffic cổng 80 và điều phối về api/frontend
   nginx:
-    image: nginx:alpine
+    image: nginx:1.30.5-alpine
     ports:
       - "80:80"
     volumes:

@@ -114,7 +114,14 @@ npm run build
 
 GitHub Actions chạy .NET build/test, SQL Server Testcontainers, frontend quality gate, Docker Compose smoke test, Playwright E2E và k6. Kết quả CI xanh là bằng chứng release.
 
-## Branch policy
+Sau khi toàn bộ release gate thành công trên `main`, workflow publish hai image lên GHCR:
+
+- `ghcr.io/mingjien/cloudservice-team3-api:sha-<commit>` và `:latest`
+- `ghcr.io/mingjien/cloudservice-team3-frontend:sha-<commit>` và `:latest`
+
+> GHCR package mới có thể mặc định ở chế độ private. Trước khi giảng viên pull image, mở từng package trong GitHub → **Package settings** → **Change visibility** → **Public**.
+
+## Quy trình Git
 
 | Nhánh | Mục đích |
 |---|---|
@@ -125,14 +132,14 @@ GitHub Actions chạy .NET build/test, SQL Server Testcontainers, frontend quali
 | `feature/ly-orders-affiliate` | Orders, affiliate, dashboard và workflow liên quan. |
 | `feature/thinh-landing` | Public landing và content screens. |
 
-Quy trình: tạo feature branch từ `develop` → commit nhỏ, có ý nghĩa → pull request vào `develop` → chỉ merge `develop` vào `main` khi release gate đạt.
+Quy trình đề xuất: tạo feature branch từ `develop` → commit nhỏ, có ý nghĩa → pull request vào `develop` → chỉ merge `develop` vào `main` khi release gate đạt. GitHub `main` cần bật branch protection để bắt buộc pull request và release gate xanh; nếu chưa bật, GitHub vẫn cho phép push trực tiếp.
 
 ## Team ownership
 
 | Thành viên | Phạm vi đã thực hiện cuối |
 |---|---|
-| Chiến | Nền tảng, database, authentication, landing; hỗ trợ admin, affilate và tích hợp cuối. |
+| Chiến | Nền tảng, database, authentication, landing; hỗ trợ admin, affiliate và tích hợp cuối. |
 | Tấn | Admin, pricing, service plans và promotions. |
 | Ly | Orders, affiliate và dashboard. |
-| Thịnh | phụ landing page và public content. |
+| Thịnh | Landing page và public content. |
 
