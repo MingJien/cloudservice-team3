@@ -114,13 +114,6 @@ npm run build
 
 GitHub Actions chạy .NET build/test, SQL Server Testcontainers, frontend quality gate, Docker Compose smoke test, Playwright E2E và k6. Kết quả CI xanh là bằng chứng release.
 
-Sau khi toàn bộ release gate thành công trên `main`, workflow publish hai image lên GHCR:
-
-- `ghcr.io/mingjien/cloudservice-team3-api:sha-<commit>` và `:latest`
-- `ghcr.io/mingjien/cloudservice-team3-frontend:sha-<commit>` và `:latest`
-
-> GHCR package mới có thể mặc định ở chế độ private. Trước khi giảng viên pull image, mở từng package trong GitHub → **Package settings** → **Change visibility** → **Public**.
-
 ## Quy trình Git
 
 | Nhánh | Mục đích |
